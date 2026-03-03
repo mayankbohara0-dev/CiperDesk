@@ -6,7 +6,7 @@ import { useState } from "react";
 import {
     Shield, MessageSquare, CheckSquare, FolderLock,
     Settings, Plus, Hash, Lock, Search, Bell, ChevronDown, Sparkles,
-    Users, ScrollText,
+    Users, ScrollText, KeyRound, BarChart3, Plug, ShieldCheck,
 } from "lucide-react";
 
 const CHANNELS = [
@@ -30,6 +30,10 @@ const NAV = [
     { icon: Users, label: "Members", href: "/app/members", match: "/app/members" },
     { icon: Bell, label: "Notifications", href: "/app/notifications", match: "/app/notifications" },
     { icon: ScrollText, label: "Audit Log", href: "/app/audit", match: "/app/audit" },
+    { icon: KeyRound, label: "Keys", href: "/app/keys", match: "/app/keys" },
+    { icon: BarChart3, label: "Admin", href: "/app/admin", match: "/app/admin" },
+    { icon: Plug, label: "Integrations", href: "/app/integrations", match: "/app/integrations" },
+    { icon: ShieldCheck, label: "Compliance", href: "/app/compliance", match: "/app/compliance" },
     { icon: Settings, label: "Settings", href: "/app/settings", match: "/app/settings" },
 ];
 
