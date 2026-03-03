@@ -1,36 +1,140 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CipherDesk 🔐
+
+**Encrypted Startup Workspace** — Telegram-level speed, Slack-level structure, Signal-level encryption.
+
+[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+![Next.js](https://img.shields.io/badge/Next.js-16-black)
+![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-v4-38bdf8)
+
+---
+
+## Overview
+
+CipherDesk is a secure, minimal, end-to-end encrypted workspace for small startups (2–20 members). It combines:
+
+- ⚡ **Real-time encrypted messaging** via WebSockets
+- ✅ **Task management** with message → task conversion
+- 🔒 **Secure file vault** with client-side encryption
+- 🤖 **AI productivity features** (Pro tier)
+
+All built on a **zero-trust, privacy-first** foundation — the server never sees your plaintext data.
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | Next.js 16 (App Router + TypeScript) |
+| Styling | Tailwind CSS v4 |
+| Animations | Framer Motion |
+| Icons | Lucide React |
+| Primitives | Radix UI |
+| Fonts | Inter + JetBrains Mono (Google Fonts) |
+
+---
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+# Clone the repo
+git clone https://github.com/mayankbohara0-dev/CiperDesk.git
+cd CiperDesk
+
+# Install dependencies
+npm install
+
+# Start development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Routes
 
-## Learn More
+| Route | Description |
+|---|---|
+| `/` | Landing page |
+| `/auth/login` | Sign in (+ 2FA step) |
+| `/auth/register` | Create workspace |
+| `/app/chat/[channel]` | Encrypted chat (general, engineering, etc.) |
+| `/app/tasks` | Task board (Kanban + list view) |
+| `/app/vault` | Encrypted file vault |
+| `/app/settings` | Security, devices, workspace, billing |
+| `/app/ai` | AI digest (Pro) |
+| `/app/notifications` | Notifications |
+| `/invite/[token]` | Workspace invite accept flow |
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Encryption Architecture
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+User writes message
+      ↓
+Encrypt locally (AES-256-GCM + workspace key)
+      ↓
+Generate unique nonce
+      ↓
+Send ciphertext over TLS
+      ↓
+Server stores encrypted payload only
+      ↓
+Recipient decrypts locally
+```
 
-## Deploy on Vercel
+**Cryptographic standards:**
+- Asymmetric: X25519
+- Signatures: Ed25519
+- Symmetric: AES-256-GCM
+- Hashing: SHA-256
+- KDF: HKDF
+- Password hashing: Argon2id
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Design System
+
+| Token | Value |
+|---|---|
+| Primary | `#4F46E5` |
+| Dark background | `#0F172A` |
+| Accent | `#22D3EE` |
+| Danger | `#EF4444` |
+| Font (headings/body) | Inter |
+| Font (monospace) | JetBrains Mono |
+
+---
+
+## Monetization
+
+| Plan | Price | Members | Storage |
+|---|---|---|---|
+| Free | ₹0 | 5 | 5 GB |
+| Pro | ₹299/user/month | Unlimited | 100 GB |
+
+---
+
+## Non-Negotiables
+
+- ❌ No ads
+- ❌ No data selling
+- ❌ No plaintext storage
+- ❌ No feature bloat
+- ✅ Encryption layer must be auditable
+
+---
+
+## Roadmap
+
+- **Phase 1** ✅ Encrypted chat + tasks
+- **Phase 2** 🔄 AI layer + file vault backend
+- **Phase 3** 📅 Mobile apps + security audit + public whitepaper
+
+---
+
+## License
+
+MIT © 2026 CipherDesk

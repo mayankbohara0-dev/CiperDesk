@@ -15,10 +15,7 @@ import {
     Search,
     Bell,
     ChevronDown,
-    LogOut,
     Sparkles,
-    Users,
-    Circle,
 } from "lucide-react";
 
 const CHANNELS = [
@@ -39,6 +36,7 @@ const NAV_ITEMS = [
     { icon: MessageSquare, label: "Chat", href: "/app/chat/general", match: "/app/chat" },
     { icon: CheckSquare, label: "Tasks", href: "/app/tasks", match: "/app/tasks" },
     { icon: FolderLock, label: "Vault", href: "/app/vault", match: "/app/vault" },
+    { icon: Bell, label: "Notifications", href: "/app/notifications", match: "/app/notifications" },
     { icon: Settings, label: "Settings", href: "/app/settings", match: "/app/settings" },
 ];
 
@@ -66,8 +64,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                         href={item.href}
                         title={item.label}
                         className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-150 group relative ${isActive(item.match)
-                                ? "bg-primary-500/20 text-primary-400 border border-primary-500/30"
-                                : "text-slate-500 hover:text-slate-300 hover:bg-surface-raised"
+                            ? "bg-primary-500/20 text-primary-400 border border-primary-500/30"
+                            : "text-slate-500 hover:text-slate-300 hover:bg-surface-raised"
                             }`}
                     >
                         <item.icon size={19} />
@@ -79,13 +77,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
                 <div className="flex-1" />
 
-                {/* AI premium badge */}
-                <button
-                    title="AI Features (Pro)"
-                    className="w-10 h-10 rounded-xl bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 flex items-center justify-center hover:bg-yellow-500/20 transition-all"
+                {/* AI Digest */}
+                <Link
+                    href="/app/ai"
+                    title="AI Digest (Pro)"
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all border ${isActive("/app/ai")
+                        ? "bg-yellow-500/20 text-yellow-400 border-yellow-500/30"
+                        : "bg-yellow-500/10 border-yellow-500/20 text-yellow-400 hover:bg-yellow-500/20"
+                        }`}
                 >
                     <Sparkles size={17} />
-                </button>
+                </Link>
 
                 {/* User avatar */}
                 <div className="w-9 h-9 rounded-xl bg-primary-500 flex items-center justify-center text-sm font-bold text-white mt-1 cursor-pointer hover:scale-105 transition-transform">
@@ -95,7 +97,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
             {/* Sidebar — channel list (only on chat page or always show) */}
             {isChatPage && (
-                <div className="w-56 flex-shrink-0 bg-dark-DEFAULT border-r border-surface-border flex flex-col overflow-hidden z-10">
+                <div className="w-56 flex-shrink-0 border-r border-surface-border flex flex-col overflow-hidden z-10" style={{ background: '#0F172A' }}>
                     {/* Workspace header */}
                     <div className="px-3 py-3.5 border-b border-surface-border">
                         <button className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg hover:bg-surface-raised transition-all group">
@@ -133,8 +135,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                                     key={ch.id}
                                     href={`/app/chat/${ch.id}`}
                                     className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-sm transition-all duration-150 group ${active
-                                            ? "bg-primary-500/15 text-primary-300 border border-primary-500/20"
-                                            : "text-slate-400 hover:text-slate-200 hover:bg-surface-raised"
+                                        ? "bg-primary-500/15 text-primary-300 border border-primary-500/20"
+                                        : "text-slate-400 hover:text-slate-200 hover:bg-surface-raised"
                                         }`}
                                 >
                                     <Hash size={14} className="flex-shrink-0" />
@@ -160,8 +162,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                                 key={dm.id}
                                 href={`/app/chat/${dm.id}`}
                                 className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-sm transition-all duration-150 ${pathname === `/app/chat/${dm.id}`
-                                        ? "bg-primary-500/15 text-primary-300 border border-primary-500/20"
-                                        : "text-slate-400 hover:text-slate-200 hover:bg-surface-raised"
+                                    ? "bg-primary-500/15 text-primary-300 border border-primary-500/20"
+                                    : "text-slate-400 hover:text-slate-200 hover:bg-surface-raised"
                                     }`}
                             >
                                 <div className="relative flex-shrink-0">
@@ -190,7 +192,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
             {/* Non-chat sidebar header */}
             {!isChatPage && (
-                <div className="w-56 flex-shrink-0 bg-dark-DEFAULT border-r border-surface-border flex flex-col z-10">
+                <div className="w-56 flex-shrink-0 border-r border-surface-border flex flex-col z-10" style={{ background: '#0F172A' }}>
                     <div className="px-3 py-3.5 border-b border-surface-border">
                         <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg">
                             <div className="w-6 h-6 rounded-md bg-primary-500 flex items-center justify-center">
