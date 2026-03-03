@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { use, useState } from "react";
 import {
     Lock,
     Hash,
@@ -134,8 +134,8 @@ function MessageBubble({ msg, onConvertToTask }: { msg: Message; onConvertToTask
                 {/* Bubble */}
                 <div
                     className={`relative px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${msg.isOwn
-                            ? "bg-primary-500/20 border border-primary-500/30 text-slate-200 rounded-tr-md"
-                            : "bg-surface-DEFAULT border border-surface-border text-slate-300 rounded-tl-md"
+                        ? "bg-primary-500/20 border border-primary-500/30 text-slate-200 rounded-tr-md"
+                        : "bg-surface-DEFAULT border border-surface-border text-slate-300 rounded-tl-md"
                         }`}
                 >
                     {msg.text}
@@ -256,12 +256,13 @@ function TaskConvertModal({ msg, onClose }: { msg: Message; onClose: () => void 
     );
 }
 
-export default function ChatPage({ params }: { params: { channelId: string } }) {
+export default function ChatPage({ params }: { params: Promise<{ channelId: string }> }) {
+    const { channelId } = use(params);
     const [messages, setMessages] = useState<Message[]>(MOCK_MESSAGES);
     const [input, setInput] = useState("");
     const [taskMsg, setTaskMsg] = useState<Message | null>(null);
 
-    const channelName = params.channelId;
+    const channelName = channelId;
 
     const sendMessage = () => {
         if (!input.trim()) return;
@@ -371,8 +372,8 @@ export default function ChatPage({ params }: { params: { channelId: string } }) 
                                 onClick={sendMessage}
                                 disabled={!input.trim()}
                                 className={`p-2 rounded-xl transition-all ${input.trim()
-                                        ? "bg-primary-500 text-white shadow-glow-primary hover:bg-primary-400"
-                                        : "bg-surface-raised text-slate-600"
+                                    ? "bg-primary-500 text-white shadow-glow-primary hover:bg-primary-400"
+                                    : "bg-surface-raised text-slate-600"
                                     }`}
                             >
                                 <Send size={15} />
