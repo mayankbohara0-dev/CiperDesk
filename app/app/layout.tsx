@@ -6,6 +6,7 @@ import { useState } from "react";
 import {
     Shield, MessageSquare, CheckSquare, FolderLock,
     Settings, Plus, Hash, Lock, Search, Bell, ChevronDown, Sparkles,
+    Users, ScrollText,
 } from "lucide-react";
 
 const CHANNELS = [
@@ -26,7 +27,9 @@ const NAV = [
     { icon: MessageSquare, label: "Chat", href: "/app/chat/general", match: "/app/chat" },
     { icon: CheckSquare, label: "Tasks", href: "/app/tasks", match: "/app/tasks" },
     { icon: FolderLock, label: "Vault", href: "/app/vault", match: "/app/vault" },
+    { icon: Users, label: "Members", href: "/app/members", match: "/app/members" },
     { icon: Bell, label: "Notifications", href: "/app/notifications", match: "/app/notifications" },
+    { icon: ScrollText, label: "Audit Log", href: "/app/audit", match: "/app/audit" },
     { icon: Settings, label: "Settings", href: "/app/settings", match: "/app/settings" },
 ];
 

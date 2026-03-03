@@ -1,0 +1,39 @@
+{
+    "name": "CipherDesk — Encrypted Workspace",
+    "short_name": "CipherDesk",
+    "description": "Zero-trust encrypted workspace for small startups. Messaging, tasks, and file vault — all E2E encrypted.",
+    "start_url": "/app/chat/general",
+    "display": "standalone",
+    "background_color": "#030711",
+    "theme_color": "#6366F1",
+    "orientation": "portrait-primary",
+    "categories": [
+        "productivity",
+        "business",
+        "utilities"
+    ],
+    "icons": [
+        {
+            "src": "/favicon.ico",
+            "sizes": "48x48",
+            "type": "image/x-icon"
+        }
+    ],
+    "shortcuts": [
+        {
+            "name": "Open Chat",
+            "url": "/app/chat/general",
+            "description": "Jump to your team chat"
+        },
+        {
+            "name": "Open Tasks",
+            "url": "/app/tasks",
+            "description": "View your task board"
+        },
+        {
+            "name": "Open Vault",
+            "url": "/app/vault",
+            "description": "Access file vault"
+        }
+    ]
+}
