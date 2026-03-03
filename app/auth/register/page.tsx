@@ -2,194 +2,158 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Shield, Lock, Eye, EyeOff, ArrowRight, Check, Building2 } from "lucide-react";
+import { Shield, Lock, Eye, EyeOff, ArrowRight, Check } from "lucide-react";
 
-const STRENGTH_LEVELS = [
-    { label: "Weak", color: "bg-danger" },
-    { label: "Fair", color: "bg-yellow-400" },
-    { label: "Good", color: "bg-blue-400" },
-    { label: "Strong", color: "bg-green-400" },
-];
-
-function getPasswordStrength(pw: string): number {
-    let score = 0;
-    if (pw.length >= 8) score++;
-    if (pw.length >= 12) score++;
-    if (/[A-Z]/.test(pw) && /[0-9]/.test(pw)) score++;
-    if (/[^A-Za-z0-9]/.test(pw)) score++;
-    return score;
+function strengthScore(pw: string) {
+    let s = 0;
+    if (pw.length >= 8) s++;
+    if (pw.length >= 12) s++;
+    if (/[A-Z]/.test(pw)) s++;
+    if (/[0-9]/.test(pw)) s++;
+    if (/[^a-zA-Z0-9]/.test(pw)) s++;
+    return s;
 }
+const STRENGTH_LABELS = ["", "Very Weak", "Weak", "Fair", "Strong", "Very Strong"];
+const STRENGTH_COLORS = ["", "#EF4444", "#F97316", "#F59E0B", "#22C55E", "#10B981"];
 
 export default function RegisterPage() {
-    const [showPassword, setShowPassword] = useState(false);
+    const [workspace, setWorkspace] = useState("");
+    const [name, setName] = useState("");
+    const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [workspaceName, setWorkspaceName] = useState("");
+    const [showPw, setShowPw] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
 
-    const strength = getPasswordStrength(password);
-    const strengthInfo = STRENGTH_LEVELS[Math.max(0, strength - 1)];
+    const score = strengthScore(password);
+    const wsSlug = workspace.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        window.location.href = "/app/chat/general";
+        setError("");
+        if (!workspace || !name || !email || !password) { setError("Please fill in all fields."); return; }
+        if (score < 2) { setError("Password is too weak. Add uppercase, numbers, or symbols."); return; }
+        setLoading(true);
+        setTimeout(() => { window.location.href = "/app/chat/general"; }, 1500);
     };
 
     return (
-        <div className="min-h-screen bg-dark grid-pattern flex items-center justify-center px-6 py-12">
-            <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary-500/6 rounded-full blur-3xl pointer-events-none" />
+        <div style={{ minHeight: "100vh", background: "#0F172A", display: "flex", alignItems: "center", justifyContent: "center", padding: "3rem 1.5rem" }} className="grid-pattern">
+            <div style={{ width: 500, height: 500, background: "rgba(79,70,229,.07)", borderRadius: "50%", filter: "blur(80px)", position: "absolute", top: "33%", left: "50%", transform: "translate(-50%,-50%)", pointerEvents: "none" }} />
 
-            <div className="relative w-full max-w-md animate-in">
+            <div className="relative w-full animate-in" style={{ maxWidth: 480 }}>
                 {/* Logo */}
-                <div className="text-center mb-8">
-                    <Link href="/" className="inline-flex items-center gap-2.5 mb-6">
-                        <div className="w-10 h-10 rounded-xl bg-primary-500 flex items-center justify-center shadow-glow-primary">
+                <div style={{ textAlign: "center", marginBottom: 32 }}>
+                    <Link href="/" style={{ display: "inline-flex", alignItems: "center", gap: 10, marginBottom: 28 }}>
+                        <div style={{ width: 40, height: 40, borderRadius: 12, background: "#4F46E5", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 0 30px rgba(79,70,229,.4)" }}>
                             <Shield size={20} className="text-white" />
                         </div>
-                        <span className="text-xl font-bold text-slate-100">
-                            Cipher<span className="text-gradient">Desk</span>
-                        </span>
+                        <span style={{ fontSize: 20, fontWeight: 700, color: "#F1F5F9" }}>Cipher<span className="text-gradient">Desk</span></span>
                     </Link>
-                    <h1 className="text-2xl font-bold text-slate-100">Create your workspace</h1>
-                    <p className="text-sm text-slate-400 mt-2">
-                        Free for up to 5 members. No credit card required.
+                    <h1 style={{ fontSize: 26, fontWeight: 800, color: "#F1F5F9" }}>Create your workspace</h1>
+                    <p style={{ fontSize: 14, color: "#94A3B8", marginTop: 8 }}>
+                        Set up your encrypted team workspace in seconds.
                     </p>
                 </div>
 
-                <div className="card space-y-5">
-                    <form onSubmit={handleSubmit} className="space-y-5">
+                <div className="card">
+                    {error && (
+                        <div style={{ background: "rgba(239,68,68,.1)", border: "1px solid rgba(239,68,68,.2)", borderRadius: 10, padding: "10px 14px", color: "#F87171", fontSize: 14, marginBottom: 20 }}>
+                            {error}
+                        </div>
+                    )}
+
+                    <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
                         {/* Workspace name */}
                         <div>
-                            <label className="block text-sm font-medium text-slate-300 mb-2">
-                                Workspace Name
-                            </label>
-                            <div className="relative">
-                                <Building2 size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                                <input
-                                    id="workspace-name"
-                                    type="text"
-                                    className="input-field pl-10"
-                                    placeholder="Acme, Inc."
-                                    value={workspaceName}
-                                    onChange={(e) => setWorkspaceName(e.target.value)}
-                                    required
-                                    autoFocus
-                                />
-                            </div>
-                            {workspaceName && (
-                                <p className="text-xs text-slate-500 mt-1">
-                                    Workspace URL: <span className="font-mono text-accent-400">app.cipherdesk.io/{workspaceName.toLowerCase().replace(/\s+/g, "-")}</span>
+                            <label style={{ display: "block", fontSize: 14, fontWeight: 500, color: "#CBD5E1", marginBottom: 8 }}>Workspace Name</label>
+                            <input id="workspace" type="text" className="input-field" placeholder="Acme Inc."
+                                value={workspace} onChange={e => setWorkspace(e.target.value)} required autoFocus />
+                            {wsSlug && (
+                                <p style={{ fontSize: 12, color: "#64748B", marginTop: 6 }}>
+                                    Your workspace URL:{" "}
+                                    <span style={{ fontFamily: "monospace", color: "#818CF8" }}>app.cipherdesk.io/{wsSlug}</span>
                                 </p>
                             )}
                         </div>
 
-                        {/* Full name */}
+                        {/* Name */}
                         <div>
-                            <label className="block text-sm font-medium text-slate-300 mb-2">
-                                Your Full Name
-                            </label>
-                            <input
-                                id="full-name"
-                                type="text"
-                                className="input-field"
-                                placeholder="Arjun Mehta"
-                                required
-                            />
+                            <label style={{ display: "block", fontSize: 14, fontWeight: 500, color: "#CBD5E1", marginBottom: 8 }}>Full Name</label>
+                            <input id="fullname" type="text" className="input-field" placeholder="Jane Doe"
+                                value={name} onChange={e => setName(e.target.value)} required />
                         </div>
 
                         {/* Email */}
                         <div>
-                            <label className="block text-sm font-medium text-slate-300 mb-2">
-                                Work Email
-                            </label>
-                            <input
-                                id="email"
-                                type="email"
-                                className="input-field"
-                                placeholder="you@company.com"
-                                required
-                            />
+                            <label style={{ display: "block", fontSize: 14, fontWeight: 500, color: "#CBD5E1", marginBottom: 8 }}>Work Email</label>
+                            <input id="email" type="email" className="input-field" placeholder="you@company.com"
+                                value={email} onChange={e => setEmail(e.target.value)} required />
                         </div>
 
                         {/* Password */}
                         <div>
-                            <label className="block text-sm font-medium text-slate-300 mb-2">
-                                Password
-                            </label>
-                            <div className="relative">
-                                <input
-                                    id="password"
-                                    type={showPassword ? "text" : "password"}
-                                    className="input-field pr-11"
-                                    placeholder="Min 12 characters"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    required
-                                    minLength={8}
-                                />
-                                <button
-                                    type="button"
-                                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    aria-label="Toggle password"
-                                >
-                                    {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                            <label style={{ display: "block", fontSize: 14, fontWeight: 500, color: "#CBD5E1", marginBottom: 8 }}>Password</label>
+                            <div style={{ position: "relative" }}>
+                                <input id="password" type={showPw ? "text" : "password"} className="input-field" style={{ paddingRight: 44 }}
+                                    placeholder="Min 12 characters" value={password} onChange={e => setPassword(e.target.value)} required />
+                                <button type="button" onClick={() => setShowPw(!showPw)} aria-label="Toggle password"
+                                    style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#64748B" }}>
+                                    {showPw ? <EyeOff size={17} /> : <Eye size={17} />}
                                 </button>
                             </div>
-                            {/* Password strength */}
-                            {password && (
-                                <div className="mt-2 space-y-1">
-                                    <div className="flex gap-1">
-                                        {[1, 2, 3, 4].map((i) => (
-                                            <div
-                                                key={i}
-                                                className={`h-1 flex-1 rounded-full transition-all duration-300 ${i <= strength ? strengthInfo.color : "bg-surface-border"
-                                                    }`}
-                                            />
+
+                            {password.length > 0 && (
+                                <div style={{ marginTop: 10 }}>
+                                    <div style={{ display: "flex", gap: 4, marginBottom: 6 }}>
+                                        {[1, 2, 3, 4, 5].map(i => (
+                                            <div key={i} style={{ flex: 1, height: 4, borderRadius: 2, background: i <= score ? STRENGTH_COLORS[score] : "#263248", transition: "all .3s" }} />
                                         ))}
                                     </div>
-                                    <p className="text-xs text-slate-500">
-                                        Strength:{" "}
-                                        <span className="font-medium text-slate-300">{strengthInfo?.label ?? "Too short"}</span>
+                                    <p style={{ fontSize: 12, color: STRENGTH_COLORS[score] || "#64748B" }}>
+                                        {STRENGTH_LABELS[score] || "Enter a password"}
                                     </p>
                                 </div>
                             )}
                         </div>
 
-                        <button type="submit" className="btn-primary w-full justify-center py-3">
-                            Create Workspace
-                            <ArrowRight size={16} />
+                        {/* Key generation notice */}
+                        <div style={{ background: "rgba(34,211,238,.05)", border: "1px solid rgba(34,211,238,.15)", borderRadius: 10, padding: "14px" }}>
+                            <p style={{ fontSize: 12, fontWeight: 600, color: "#CBD5E1", marginBottom: 8 }}>What happens when you register</p>
+                            <ul style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                                {[
+                                    "Ed25519 signing keypair generated locally in your browser",
+                                    "X25519 key exchange keypair generated for encrypted sessions",
+                                    "Private keys never leave your device — ever",
+                                    "Workspace AES-256 key generated and wrapped with your public key",
+                                ].map(s => (
+                                    <li key={s} style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 12, color: "#94A3B8" }}>
+                                        <Lock size={11} style={{ color: "#22D3EE", flexShrink: 0, marginTop: 2 }} />{s}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+
+                        <button type="submit" className="btn-primary justify-center py-3.5 w-full" disabled={loading} style={{ fontSize: "1rem" }}>
+                            {loading ? (
+                                <>
+                                    <span style={{ width: 16, height: 16, borderRadius: "50%", border: "2px solid rgba(255,255,255,.3)", borderTopColor: "#fff", animation: "spin 1s linear infinite", display: "inline-block" }} />
+                                    Generating your keys…
+                                </>
+                            ) : <>Create Workspace <ArrowRight size={17} /></>}
                         </button>
-                    </form>
 
-                    {/* What happens next */}
-                    <div className="border-t border-surface-border pt-5 space-y-2.5">
-                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">What happens next</p>
-                        {[
-                            "Keypair generated locally on your device",
-                            "Workspace encryption key created client-side",
-                            "Invite your team via secure email link",
-                        ].map((step) => (
-                            <div key={step} className="flex items-start gap-2">
-                                <Check size={14} className="text-accent-400 flex-shrink-0 mt-0.5" />
-                                <span className="text-xs text-slate-400">{step}</span>
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* Security badge */}
-                    <div className="flex items-center gap-2 p-3 rounded-lg bg-accent-400/5 border border-accent-400/15">
-                        <Lock size={14} className="text-accent-400 flex-shrink-0" />
-                        <p className="text-xs text-slate-400">
-                            Your keys never leave your device. Password hashed with{" "}
-                            <span className="font-mono text-accent-400">Argon2id</span>.
+                        <p style={{ fontSize: 12, color: "#475569", textAlign: "center" }}>
+                            By creating a workspace, you agree to our{" "}
+                            <a href="#" style={{ color: "#818CF8" }}>Terms</a> and{" "}
+                            <a href="#" style={{ color: "#818CF8" }}>Privacy Policy</a>.
                         </p>
-                    </div>
+                    </form>
                 </div>
 
-                <p className="text-center text-sm text-slate-500 mt-6">
+                <p style={{ textAlign: "center", fontSize: 14, color: "#64748B", marginTop: 20 }}>
                     Already have a workspace?{" "}
-                    <Link href="/auth/login" className="text-primary-400 hover:text-primary-300 font-medium transition-colors">
-                        Sign in
-                    </Link>
+                    <Link href="/auth/login" style={{ color: "#818CF8", fontWeight: 500, textDecoration: "none" }}>Sign in</Link>
                 </p>
             </div>
         </div>
