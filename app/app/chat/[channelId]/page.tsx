@@ -1,396 +1,296 @@
 "use client";
 
-import { use, useState } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
 import {
-    Lock,
-    Hash,
-    Smile,
-    Paperclip,
-    Send,
-    MoreHorizontal,
-    Reply,
-    Edit2,
-    Trash2,
-    CheckSquare,
-    SmilePlus,
-    Users,
-    ChevronRight,
-    CheckCheck,
-    Flame,
-    Pin,
+    Hash, Shield, Lock, Send, Smile, Paperclip, MoreHorizontal,
+    Check, Search, Pin, Trash2, X,
 } from "lucide-react";
+import { useUser, useMessages, useChannels, useMembers } from "@/lib/hooks";
+import { supabase } from "@/lib/supabase/client";
 
-type Message = {
-    id: string;
-    user: string;
-    avatar: string;
-    color: string;
-    text: string;
-    time: string;
-    reactions?: { emoji: string; count: number }[];
-    isOwn?: boolean;
-    encrypted?: boolean;
-    pinned?: boolean;
-};
+const REACTIONS = ["👍", "❤️", "🔥", "✅", "😂", "🎉"];
 
-const MOCK_MESSAGES: Message[] = [
-    {
-        id: "1",
-        user: "Arjun Mehta",
-        avatar: "AM",
-        color: "bg-primary-500",
-        text: "Morning everyone! Just finished the auth flow implementation. Pushed to staging. Can someone review before we merge?",
-        time: "10:28 AM",
-        encrypted: true,
-        reactions: [{ emoji: "🔥", count: 3 }, { emoji: "✅", count: 2 }],
-    },
-    {
-        id: "2",
-        user: "Priya Sharma",
-        avatar: "PS",
-        color: "bg-violet-500",
-        text: "On it! I'll review ASAP. Also @Arjun — we should track the deploy issue as a task. That regression from last week is still open.",
-        time: "10:31 AM",
-        encrypted: true,
-    },
-    {
-        id: "3",
-        user: "Rahul Nair",
-        avatar: "RN",
-        color: "bg-green-600",
-        text: "Agree. We should prioritize that. What's the ETA on the fix?",
-        time: "10:33 AM",
-        encrypted: true,
-        reactions: [{ emoji: "👍", count: 1 }],
-    },
-    {
-        id: "4",
-        user: "You",
-        avatar: "Y",
-        color: "bg-accent-500",
-        text: "I'll create a task now from Priya's message. Should be ready for review by EOD today.",
-        time: "10:35 AM",
-        encrypted: true,
-        isOwn: true,
-    },
-    {
-        id: "5",
-        user: "Priya Sharma",
-        avatar: "PS",
-        color: "bg-violet-500",
-        text: "Great! I've also started working on the file vault encryption spec. Will share the doc in #engineering soon.",
-        time: "10:38 AM",
-        encrypted: true,
-        reactions: [{ emoji: "🙌", count: 2 }],
-    },
-    {
-        id: "6",
-        user: "Arjun Mehta",
-        avatar: "AM",
-        color: "bg-primary-500",
-        text: "The workspace key rotation logic is the tricky part — we need to re-encrypt all member keys when someone leaves. I've drafted the flow.",
-        time: "10:42 AM",
-        encrypted: true,
-        pinned: true,
-    },
-    {
-        id: "7",
-        user: "You",
-        avatar: "Y",
-        color: "bg-accent-500",
-        text: "Agreed. Let me take a look at your flow doc. Also the double ratchet implementation looks solid btw 🔒",
-        time: "10:44 AM",
-        encrypted: true,
-        isOwn: true,
-    },
-];
+export default function ChatPage() {
+    const { channelId } = useParams<{ channelId: string }>();
+    const router = useRouter();
 
-function MessageBubble({ msg, onConvertToTask }: { msg: Message; onConvertToTask: (msg: Message) => void }) {
-    const [hovering, setHovering] = useState(false);
+    const { user, profile, loading: userLoading } = useUser();
+    const { channels } = useChannels();
+    const [resolvedChannelId, setResolvedChannelId] = useState<string | null>(null);
 
-    return (
-        <div
-            className={`flex items-start gap-3 group ${msg.isOwn ? "flex-row-reverse" : ""}`}
-            onMouseEnter={() => setHovering(true)}
-            onMouseLeave={() => setHovering(false)}
-        >
-            {/* Avatar */}
-            <div
-                className={`w-8 h-8 rounded-xl ${msg.color} flex items-center justify-center text-xs font-bold text-white flex-shrink-0 mt-0.5`}
-            >
-                {msg.avatar[0]}
-            </div>
+    // Resolve channel name/id → real channel id
+    useEffect(() => {
+        async function resolve() {
+            if (!channelId || !user) return;
 
-            <div className={`flex-1 max-w-[75%] ${msg.isOwn ? "items-end" : "items-start"} flex flex-col`}>
-                {/* Header */}
-                <div className={`flex items-center gap-2 mb-1 ${msg.isOwn ? "flex-row-reverse" : ""}`}>
-                    <span className="text-sm font-semibold text-slate-200">{msg.user}</span>
-                    <span className="text-xs text-slate-500">{msg.time}</span>
-                    {msg.encrypted && <Lock size={10} className="text-accent-400/60" />}
-                    {msg.pinned && <Pin size={10} className="text-yellow-400/70" />}
-                    <CheckCheck size={11} className="text-primary-400/50" />
-                </div>
+            // 1. Try by exact name
+            const { data: byName } = await supabase.from("channels").select("id").eq("name", channelId).maybeSingle();
+            if (byName) { setResolvedChannelId(byName.id); return; }
 
-                {/* Bubble */}
-                <div
-                    className={`relative px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${msg.isOwn
-                        ? "bg-primary-500/20 border border-primary-500/30 text-slate-200 rounded-tr-md"
-                        : "bg-surface-DEFAULT border border-surface-border text-slate-300 rounded-tl-md"
-                        }`}
-                >
-                    {msg.text}
-                </div>
+            // 2. Try by exact id
+            if (channelId.length === 36) {
+                const { data: byId } = await supabase.from("channels").select("id").eq("id", channelId).maybeSingle();
+                if (byId) { setResolvedChannelId(byId.id); return; }
+            }
 
-                {/* Reactions */}
-                {msg.reactions && (
-                    <div className={`flex items-center gap-1 mt-1.5 ${msg.isOwn ? "flex-row-reverse" : ""}`}>
-                        {msg.reactions.map((r) => (
-                            <button
-                                key={r.emoji}
-                                className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-surface-raised border border-surface-border text-xs hover:border-primary-500/40 transition-colors"
-                            >
-                                {r.emoji} <span className="text-slate-400">{r.count}</span>
-                            </button>
-                        ))}
-                        <button className="p-0.5 rounded-full text-slate-600 hover:text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <SmilePlus size={13} />
-                        </button>
-                    </div>
-                )}
-            </div>
+            // 3. Assume channelId is a user UUID for a DM. Create or find DM channel deterministic name.
+            const u1 = user.id < channelId ? user.id : channelId;
+            const u2 = user.id < channelId ? channelId : user.id;
+            const dmName = `dm_${u1}_${u2}`;
 
-            {/* Hover actions */}
-            <div
-                className={`flex items-center gap-1 mt-1 opacity-0 group-hover:opacity-100 transition-opacity ${msg.isOwn ? "order-first" : "order-last"
-                    }`}
-            >
-                {[
-                    { icon: SmilePlus, label: "React" },
-                    { icon: Reply, label: "Reply" },
-                    { icon: Edit2, label: "Edit" },
-                ].map(({ icon: Icon, label }) => (
-                    <button
-                        key={label}
-                        title={label}
-                        className="p-1.5 rounded-lg text-slate-500 hover:text-slate-200 hover:bg-surface-raised transition-all"
-                    >
-                        <Icon size={13} />
-                    </button>
-                ))}
-                <button
-                    title="Convert to Task"
-                    onClick={() => onConvertToTask(msg)}
-                    className="p-1.5 rounded-lg text-slate-500 hover:text-accent-400 hover:bg-accent-400/10 transition-all"
-                >
-                    <CheckSquare size={13} />
-                </button>
-                <button
-                    title="More"
-                    className="p-1.5 rounded-lg text-slate-500 hover:text-slate-200 hover:bg-surface-raised transition-all"
-                >
-                    <MoreHorizontal size={13} />
-                </button>
-            </div>
-        </div>
-    );
-}
+            let { data: dmChannel } = await supabase.from("channels").select("id").eq("name", dmName).maybeSingle();
+            if (!dmChannel) {
+                const { data: newCh } = await supabase.from("channels").insert({
+                    name: dmName,
+                    description: "Direct Message",
+                    type: "private"
+                }).select("id").single();
+                dmChannel = newCh;
+            }
+            if (dmChannel) setResolvedChannelId(dmChannel.id);
+        }
+        resolve();
+    }, [channelId, user]);
 
-function TaskConvertModal({ msg, onClose }: { msg: Message; onClose: () => void }) {
-    return (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-surface-DEFAULT border border-surface-border rounded-2xl w-full max-w-md p-6 shadow-card animate-scale-in">
-                <div className="flex items-center gap-3 mb-5">
-                    <div className="w-10 h-10 rounded-xl bg-accent-400/10 border border-accent-400/20 flex items-center justify-center">
-                        <CheckSquare size={19} className="text-accent-400" />
-                    </div>
-                    <div>
-                        <h2 className="text-base font-bold text-slate-100">Convert to Task</h2>
-                        <p className="text-xs text-slate-400">Message from {msg.user}</p>
-                    </div>
-                </div>
+    const { messages, loading: msgsLoading, sendMessage, deleteMessage } = useMessages(resolvedChannelId);
 
-                <div className="space-y-4">
-                    <div>
-                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1.5">Title</label>
-                        <input className="input-field" defaultValue={msg.text.slice(0, 60) + (msg.text.length > 60 ? "..." : "")} />
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                        <div>
-                            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1.5">Assignee</label>
-                            <select className="input-field text-slate-300">
-                                <option>You</option>
-                                <option>Arjun Mehta</option>
-                                <option>Priya Sharma</option>
-                                <option>Rahul Nair</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1.5">Priority</label>
-                            <select className="input-field text-slate-300">
-                                <option>High</option>
-                                <option>Medium</option>
-                                <option>Low</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div>
-                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1.5">Due Date</label>
-                        <input type="date" className="input-field" />
-                    </div>
-                </div>
-
-                <div className="flex gap-3 mt-6">
-                    <button onClick={onClose} className="btn-secondary flex-1 justify-center">Cancel</button>
-                    <button onClick={onClose} className="btn-primary flex-1 justify-center">
-                        Create Task
-                        <Lock size={14} />
-                    </button>
-                </div>
-
-                <p className="text-xs text-slate-500 text-center mt-3 flex items-center justify-center gap-1.5">
-                    <Lock size={11} className="text-accent-400" />
-                    Task will be encrypted before storage
-                </p>
-            </div>
-        </div>
-    );
-}
-
-export default function ChatPage({ params }: { params: Promise<{ channelId: string }> }) {
-    const { channelId } = use(params);
-    const [messages, setMessages] = useState<Message[]>(MOCK_MESSAGES);
     const [input, setInput] = useState("");
-    const [taskMsg, setTaskMsg] = useState<Message | null>(null);
+    const [sending, setSending] = useState(false);
+    const [reacting, setReacting] = useState<string | null>(null);
+    const [search, setSearch] = useState("");
+    const [showSearch, setShowSearch] = useState(false);
+    const [reactions, setReactions] = useState<Record<string, string[]>>({});
+    const bottomRef = useRef<HTMLDivElement>(null);
+    const inputRef = useRef<HTMLTextAreaElement>(null);
 
-    const channelName = channelId;
+    useEffect(() => {
+        bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, [messages]);
 
-    const sendMessage = () => {
-        if (!input.trim()) return;
-        setMessages((prev) => [
-            ...prev,
-            {
-                id: Date.now().toString(),
-                user: "You",
-                avatar: "Y",
-                color: "bg-accent-500",
-                text: input,
-                time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-                encrypted: true,
-                isOwn: true,
-            },
-        ]);
+    const { members } = useMembers();
+
+    if (userLoading) {
+        return (
+            <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: "#fff" }}>
+                <div style={{ textAlign: "center" }}>
+                    <div style={{ width: 40, height: 40, borderRadius: "50%", border: "3px solid #E8E4DC", borderTopColor: "#0D0D0D", animation: "spin 1s linear infinite", margin: "0 auto 12px" }} />
+                    <p style={{ fontSize: 14, color: "#A8A49C" }}>Loading…</p>
+                </div>
+            </div>
+        );
+    }
+
+    const currentChannel = channels.find(c => c.name === channelId || c.id === channelId);
+    const dmMember = !currentChannel ? members.find(m => m.id === channelId) : null;
+    const headerTitle = currentChannel?.name ?? (dmMember ? dmMember.full_name || dmMember.email : channelId);
+    const headerDesc = currentChannel?.description ?? (dmMember ? "Direct message (End-to-End Encrypted)" : "");
+    const initials = dmMember?.full_name ? dmMember.full_name.slice(0, 2).toUpperCase() : dmMember?.email.slice(0, 2).toUpperCase() || "DM";
+
+    // Filter messages for search
+    const displayMessages = search
+        ? messages.filter(m => m.content.toLowerCase().includes(search.toLowerCase()))
+        : messages;
+
+    const handleSend = async () => {
+        if (!input.trim() || !user || !resolvedChannelId || sending) return;
+        setSending(true);
+        await sendMessage(user.id, input);
         setInput("");
+        setSending(false);
+        inputRef.current?.focus();
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
+    };
+
+    const toggleReaction = (msgId: string, emoji: string) => {
+        setReacting(null);
+        setReactions(prev => {
+            const cur = prev[msgId] ?? [];
+            return { ...prev, [msgId]: cur.includes(emoji) ? cur.filter(e => e !== emoji) : [...cur, emoji] };
+        });
+    };
+
+    const getInitials = (name: string | null | undefined, email: string) => {
+        if (name) return name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
+        return email.slice(0, 2).toUpperCase();
+    };
+
+    const getAvatarBg = (id: string) => {
+        const colors = ["#4F63FF", "#9333EA", "#2E7D32", "#D97706", "#DC2626", "#0891B2"];
+        return colors[id.charCodeAt(0) % colors.length];
     };
 
     return (
-        <div className="flex flex-col h-full">
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 py-3.5 border-b border-surface-border bg-dark/50 backdrop-blur-sm flex-shrink-0">
-                <div className="flex items-center gap-2.5">
-                    <Hash size={17} className="text-slate-400" />
-                    <span className="text-base font-bold text-slate-200">{channelName}</span>
-                    <div className="w-px h-4 bg-surface-border mx-1" />
-                    <span className="text-sm text-slate-500">4 members</span>
-                    <div className="flex -space-x-1.5">
-                        {["AM", "PS", "RN", "Y"].map((av, i) => (
-                            <div
-                                key={av}
-                                className={`w-5 h-5 rounded-full border border-dark text-[10px] font-bold text-white flex items-center justify-center ${["bg-primary-500", "bg-violet-500", "bg-green-600", "bg-accent-500"][i]
-                                    }`}
-                            >
-                                {av[0]}
-                            </div>
-                        ))}
+        <div style={{ height: "100%", display: "flex", flexDirection: "column", overflow: "hidden", background: "#fff" }}>
+
+            {/* Channel header */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 20px", borderBottom: "1.5px solid #E8E4DC", flexShrink: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 10, background: dmMember ? "#0D0D0D" : "#F5F0E8", display: "flex", alignItems: "center", justifyContent: "center", color: dmMember ? "#fff" : "#6B675E", fontSize: 13, fontWeight: 800 }}>
+                        {dmMember ? initials : <Hash size={15} style={{ color: "#6B675E" }} />}
                     </div>
-                </div>
-                <div className="flex items-center gap-2">
-                    <span className="encrypted-label">
-                        <Lock size={10} />
-                        E2E Encrypted
+                    <div>
+                        <h1 style={{ fontSize: 15, fontWeight: 800, color: "#0D0D0D", fontFamily: "'Plus Jakarta Sans',sans-serif", letterSpacing: "-.01em" }}>
+                            {headerTitle}
+                        </h1>
+                        {headerDesc && (
+                            <p style={{ fontSize: 11, color: "#A8A49C" }}>{headerDesc}</p>
+                        )}
+                    </div>
+                    <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#F0FDF4", color: "#166534", border: "1px solid #BBF7D0", display: "flex", alignItems: "center", gap: 4 }}>
+                        <Lock size={9} /> E2EE
                     </span>
-                    <button className="p-2 rounded-lg text-slate-500 hover:text-slate-200 hover:bg-surface-raised transition-all">
-                        <Users size={16} />
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <button onClick={() => setShowSearch(!showSearch)}
+                        style={{ width: 32, height: 32, borderRadius: 9, border: "1.5px solid #E8E4DC", background: showSearch ? "#0D0D0D" : "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: showSearch ? "#AAEF45" : "#6B675E" }}>
+                        <Search size={14} />
                     </button>
-                    <button className="p-2 rounded-lg text-slate-500 hover:text-slate-200 hover:bg-surface-raised transition-all">
-                        <Pin size={16} />
+                    <button style={{ width: 32, height: 32, borderRadius: 9, border: "1.5px solid #E8E4DC", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#6B675E" }}>
+                        <Pin size={14} />
                     </button>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 10px", borderRadius: 9, background: "#F5F0E8", border: "1.5px solid #E8E4DC" }}>
+                        <Shield size={12} style={{ color: "#0D0D0D" }} />
+                        <span style={{ fontSize: 11, fontWeight: 700, color: "#0D0D0D" }}>Messages: {messages.length}</span>
+                    </div>
                 </div>
             </div>
 
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5 scroll-smooth">
-                {/* Day divider */}
-                <div className="flex items-center gap-3 py-2">
-                    <div className="flex-1 h-px bg-surface-border" />
-                    <span className="text-xs text-slate-500 font-medium px-2">Today</span>
-                    <div className="flex-1 h-px bg-surface-border" />
+            {/* Search bar */}
+            {showSearch && (
+                <div style={{ padding: "8px 20px", borderBottom: "1.5px solid #E8E4DC", display: "flex", alignItems: "center", gap: 8 }}>
+                    <Search size={14} style={{ color: "#A8A49C" }} />
+                    <input autoFocus placeholder="Search messages…" value={search} onChange={e => setSearch(e.target.value)}
+                        style={{ flex: 1, border: "none", outline: "none", fontSize: 13, color: "#0D0D0D", background: "transparent" }} />
+                    {search && <button onClick={() => setSearch("")} style={{ border: "none", background: "none", cursor: "pointer", color: "#A8A49C" }}><X size={14} /></button>}
                 </div>
+            )}
 
-                {messages.map((msg) => (
-                    <MessageBubble
-                        key={msg.id}
-                        msg={msg}
-                        onConvertToTask={(m) => setTaskMsg(m)}
-                    />
-                ))}
+            {/* Messages list */}
+            <div style={{ flex: 1, overflowY: "auto", padding: "16px 20px", display: "flex", flexDirection: "column", gap: 2 }}>
+                {msgsLoading && (
+                    <div style={{ display: "flex", justifyContent: "center", padding: 32 }}>
+                        <div style={{ width: 28, height: 28, borderRadius: "50%", border: "2px solid #E8E4DC", borderTopColor: "#0D0D0D", animation: "spin 1s linear infinite" }} />
+                    </div>
+                )}
+
+                {!msgsLoading && displayMessages.length === 0 && (
+                    <div style={{ textAlign: "center", padding: "60px 0" }}>
+                        <div style={{ width: 52, height: 52, borderRadius: 16, background: "#F5F0E8", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}>
+                            <Hash size={22} style={{ color: "#C8C4BC" }} />
+                        </div>
+                        <p style={{ fontSize: 15, fontWeight: 700, color: "#0D0D0D" }}>No messages yet</p>
+                        <p style={{ fontSize: 13, color: "#A8A49C", marginTop: 4 }}>Send the first message to #{currentChannel?.name ?? channelId}!</p>
+                    </div>
+                )}
+
+                {displayMessages.map((msg, idx) => {
+                    const isOwn = msg.user_id === user?.id;
+                    const prev = displayMessages[idx - 1];
+                    const isSameUser = prev && prev.user_id === msg.user_id &&
+                        (new Date(msg.created_at).getTime() - new Date(prev.created_at).getTime()) < 60000;
+                    const name = msg.profile?.full_name ?? msg.profile?.email ?? "User";
+                    const initials = getInitials(msg.profile?.full_name, msg.profile?.email ?? "U");
+                    const avatarBg = getAvatarBg(msg.user_id);
+                    const msgReactions = reactions[msg.id] ?? [];
+                    const time = new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+                    return (
+                        <div key={msg.id}
+                            style={{ display: "flex", gap: 10, padding: "3px 6px", borderRadius: 10, marginTop: isSameUser ? 1 : 10, position: "relative" }}
+                            onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "#FAFAF7"}
+                            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; if (reacting === msg.id) setReacting(null); }}>
+
+                            {/* Avatar */}
+                            <div style={{ width: 34, flexShrink: 0 }}>
+                                {!isSameUser && (
+                                    <div style={{ width: 34, height: 34, borderRadius: 10, background: avatarBg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 800, color: "#fff" }}>
+                                        {initials}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Content */}
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                                {!isSameUser && (
+                                    <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 3 }}>
+                                        <span style={{ fontSize: 13, fontWeight: 700, color: "#0D0D0D" }}>{name}</span>
+                                        {isOwn && <span style={{ fontSize: 10, fontWeight: 600, padding: "1px 6px", borderRadius: 999, background: "#AAEF45", color: "#0D0D0D" }}>You</span>}
+                                        <span style={{ fontSize: 11, color: "#C8C4BC" }}>{time}</span>
+                                    </div>
+                                )}
+                                <p style={{ fontSize: 14, color: "#2D2D2D", lineHeight: 1.55, wordBreak: "break-word" }}>{msg.content}</p>
+                                {msgReactions.length > 0 && (
+                                    <div style={{ display: "flex", gap: 4, marginTop: 4, flexWrap: "wrap" }}>
+                                        {msgReactions.map(emoji => (
+                                            <button key={emoji} onClick={() => toggleReaction(msg.id, emoji)}
+                                                style={{ display: "flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 99, background: "#F5F0E8", border: "1.5px solid #E8E4DC", cursor: "pointer", fontSize: 13 }}>
+                                                {emoji} <span style={{ fontSize: 11, fontWeight: 700, color: "#6B675E" }}>1</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Actions (hover) */}
+                            <div style={{ display: "flex", gap: 4, position: "absolute", right: 8, top: 4 }}>
+                                <button onClick={() => setReacting(reacting === msg.id ? null : msg.id)}
+                                    style={{ width: 28, height: 28, borderRadius: 8, border: "1.5px solid #E8E4DC", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#6B675E" }}>
+                                    <Smile size={13} />
+                                </button>
+                                {isOwn && (
+                                    <button onClick={() => deleteMessage(msg.id)}
+                                        style={{ width: 28, height: 28, borderRadius: 8, border: "1.5px solid #FECACA", background: "#FEE2E2", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#DC2626" }}>
+                                        <Trash2 size={12} />
+                                    </button>
+                                )}
+                            </div>
+
+                            {/* Emoji picker */}
+                            {reacting === msg.id && (
+                                <div style={{ position: "absolute", right: 8, top: 36, zIndex: 10, background: "#fff", border: "1.5px solid #E8E4DC", borderRadius: 12, padding: "8px 10px", display: "flex", gap: 6, boxShadow: "0 4px 20px rgba(0,0,0,.10)" }}>
+                                    {REACTIONS.map(emoji => (
+                                        <button key={emoji} onClick={() => toggleReaction(msg.id, emoji)}
+                                            style={{ fontSize: 18, cursor: "pointer", background: "none", border: "none", padding: "2px 4px", borderRadius: 6, transition: "transform .1s" }}
+                                            onMouseEnter={e => (e.currentTarget as HTMLElement).style.transform = "scale(1.3)"}
+                                            onMouseLeave={e => (e.currentTarget as HTMLElement).style.transform = "scale(1)"}>
+                                            {emoji}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
+                <div ref={bottomRef} />
             </div>
 
             {/* Composer */}
-            <div className="px-4 pb-4 pt-2 flex-shrink-0">
-                <div className="bg-surface-DEFAULT rounded-2xl border border-surface-border overflow-hidden">
-                    <div className="flex items-center px-4 py-1 border-b border-surface-border gap-2">
-                        <button className="btn-ghost text-xs px-2 py-1 gap-1.5">
-                            <strong>B</strong>
-                        </button>
-                        <button className="btn-ghost text-xs px-2 py-1 gap-1.5 italic">I</button>
-                        <button className="btn-ghost text-xs px-2 py-1 gap-1.5 font-mono">{"</>"}</button>
-                    </div>
-                    <div className="flex items-end gap-3 px-4 py-3">
-                        <Lock size={15} className="text-accent-400/60 flex-shrink-0 mb-1" />
-                        <textarea
-                            id="message-composer"
-                            className="flex-1 bg-transparent text-sm text-slate-200 placeholder:text-slate-500 resize-none outline-none leading-relaxed max-h-32"
-                            placeholder={`Message #${channelName} (encrypted)`}
-                            rows={1}
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === "Enter" && !e.shiftKey) {
-                                    e.preventDefault();
-                                    sendMessage();
-                                }
-                            }}
-                        />
-                        <div className="flex items-center gap-1.5 flex-shrink-0 mb-0.5">
-                            <button className="p-1.5 rounded-lg text-slate-500 hover:text-slate-300 hover:bg-surface-raised transition-all">
-                                <Smile size={17} />
-                            </button>
-                            <button className="p-1.5 rounded-lg text-slate-500 hover:text-slate-300 hover:bg-surface-raised transition-all">
-                                <Paperclip size={17} />
-                            </button>
-                            <button
-                                onClick={sendMessage}
-                                disabled={!input.trim()}
-                                className={`p-2 rounded-xl transition-all ${input.trim()
-                                    ? "bg-primary-500 text-white shadow-glow-primary hover:bg-primary-400"
-                                    : "bg-surface-raised text-slate-600"
-                                    }`}
-                            >
-                                <Send size={15} />
-                            </button>
-                        </div>
-                    </div>
+            <div style={{ padding: "12px 20px", borderTop: "1.5px solid #E8E4DC", background: "#fff", flexShrink: 0 }}>
+                <div style={{ display: "flex", gap: 10, alignItems: "flex-end", background: "#F5F0E8", border: "1.5px solid #E8E4DC", borderRadius: 14, padding: "8px 12px", transition: "border-color .15s" }}
+                    onFocusCapture={e => (e.currentTarget as HTMLElement).style.borderColor = "#0D0D0D"}
+                    onBlurCapture={e => (e.currentTarget as HTMLElement).style.borderColor = "#E8E4DC"}>
+                    <button style={{ flexShrink: 0, width: 28, height: 28, borderRadius: 8, border: "none", background: "none", cursor: "pointer", color: "#A8A49C", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <Paperclip size={15} />
+                    </button>
+                    <textarea ref={inputRef} placeholder={`Message #${currentChannel?.name ?? channelId}…`}
+                        value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown} rows={1}
+                        style={{ flex: 1, border: "none", outline: "none", background: "transparent", fontSize: 14, color: "#0D0D0D", resize: "none", fontFamily: "Inter,sans-serif", lineHeight: 1.5, maxHeight: 120, overflowY: "auto" }} />
+                    <button style={{ flexShrink: 0, width: 28, height: 28, borderRadius: 8, border: "none", background: "none", cursor: "pointer", color: "#A8A49C", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <Smile size={15} />
+                    </button>
+                    <button onClick={handleSend} disabled={!input.trim() || sending}
+                        style={{ flexShrink: 0, width: 34, height: 34, borderRadius: 10, border: "none", background: input.trim() ? "#0D0D0D" : "#E8E4DC", display: "flex", alignItems: "center", justifyContent: "center", cursor: input.trim() ? "pointer" : "default", transition: "all .15s" }}>
+                        {sending
+                            ? <Check size={16} style={{ color: "#AAEF45" }} />
+                            : <Send size={15} style={{ color: input.trim() ? "#AAEF45" : "#A8A49C", transform: "rotate(0deg)" }} />}
+                    </button>
                 </div>
-                <p className="text-center text-xs text-slate-600 mt-2 flex items-center justify-center gap-1.5">
-                    <Lock size={10} />
-                    Messages are encrypted with AES-256-GCM before leaving your device
-                </p>
+                <p style={{ fontSize: 11, color: "#C8C4BC", textAlign: "center", marginTop: 6 }}>Shift+Enter for new line · E2EE · messages stored in Supabase</p>
             </div>
-
-            {/* Task convert modal */}
-            {taskMsg && (
-                <TaskConvertModal msg={taskMsg} onClose={() => setTaskMsg(null)} />
-            )}
         </div>
     );
 }

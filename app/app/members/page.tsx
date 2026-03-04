@@ -2,35 +2,39 @@
 import { useState } from "react";
 import {
     Users, UserPlus, Shield, Lock, KeyRound, Check, MoreHorizontal,
-    Crown, ShieldCheck, Eye, Mail, Clock, X, ChevronDown, Copy, CheckCheck,
+    Crown, ShieldCheck, Mail, Clock, X, Copy, CheckCheck,
 } from "lucide-react";
+import { useMembers, useUser, type Profile } from "@/lib/hooks";
 
 type Role = "owner" | "admin" | "member";
 
-const members = [
-    { id: 1, name: "You (Arjun Mehta)", email: "arjun@buildfast.io", av: "AM", color: "#6366F1", role: "owner" as Role, joined: "Jan 12, 2026", online: true, devices: 2, keyVerified: true },
-    { id: 2, name: "Priya Sharma", email: "priya@buildfast.io", av: "PS", color: "#8B5CF6", role: "admin" as Role, joined: "Jan 14, 2026", online: true, devices: 1, keyVerified: true },
-    { id: 3, name: "Rahul Nair", email: "rahul@buildfast.io", av: "RN", color: "#10B981", role: "member" as Role, joined: "Jan 20, 2026", online: false, devices: 1, keyVerified: true },
-    { id: 4, name: "Divya Kapoor", email: "divya@buildfast.io", av: "DK", color: "#F59E0B", role: "member" as Role, joined: "Feb 3, 2026", online: false, devices: 1, keyVerified: false },
-];
-
-const ROLE_CONFIG: Record<Role, { label: string; icon: React.ElementType; styles: React.CSSProperties }> = {
-    owner: { label: "Owner", icon: Crown, styles: { background: "rgba(245,158,11,.12)", color: "#FCD34D", border: "1px solid rgba(245,158,11,.25)" } },
-    admin: { label: "Admin", icon: ShieldCheck, styles: { background: "rgba(99,102,241,.12)", color: "#A5B4FC", border: "1px solid rgba(99,102,241,.25)" } },
-    member: { label: "Member", icon: Users, styles: { background: "rgba(255,255,255,.05)", color: "#94A3B8", border: "1px solid rgba(255,255,255,.1)" } },
+const ROLE_CFG: Record<Role, { label: string; icon: React.ElementType; bg: string; color: string }> = {
+    owner: { label: "Owner", icon: Crown, bg: "#FEF9C3", color: "#854D0E" },
+    admin: { label: "Admin", icon: ShieldCheck, bg: "#EEF2FF", color: "#3730A3" },
+    member: { label: "Member", icon: Users, bg: "#F5F0E8", color: "#6B675E" },
 };
 
 function RoleBadge({ role }: { role: Role }) {
-    const cfg = ROLE_CONFIG[role];
-    const Icon = cfg.icon;
+    const r = (["owner", "admin", "member"].includes(role) ? role : "member") as Role;
+    const c = ROLE_CFG[r];
     return (
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 10px", borderRadius: 100, fontSize: 11, fontWeight: 600, ...cfg.styles }}>
-            <Icon size={11} />{cfg.label}
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 10px", borderRadius: 999, fontSize: 11, fontWeight: 700, background: c.bg, color: c.color }}>
+            <c.icon size={10} />{c.label}
         </span>
     );
 }
 
+function getAvatarBg(id: string) {
+    const colors = ["#4F63FF", "#9333EA", "#2E7D32", "#D97706", "#DC2626", "#0891B2"];
+    let hash = 0;
+    for (let i = 0; i < id.length; i++) hash = id.charCodeAt(i) + ((hash << 5) - hash);
+    return colors[Math.abs(hash) % colors.length];
+}
+
 export default function MembersPage() {
+    const { user } = useUser();
+    const { members, loading, updateRole } = useMembers();
+
     const [inviteOpen, setInviteOpen] = useState(false);
     const [inviteEmail, setInviteEmail] = useState("");
     const [inviteRole, setInviteRole] = useState<Role>("member");
@@ -40,141 +44,115 @@ export default function MembersPage() {
     const handleInvite = (e: React.FormEvent) => {
         e.preventDefault();
         setInviteSent(true);
+        // In a real app, this would call supabase API to send magic link
         setTimeout(() => { setInviteOpen(false); setInviteSent(false); setInviteEmail(""); }, 2000);
     };
-
-    const copyLink = () => {
-        setLinkCopied(true);
-        setTimeout(() => setLinkCopied(false), 2000);
-    };
-
-    const S = {
-        page: { height: "100%", display: "flex", flexDirection: "column" as const, overflow: "hidden" },
-        header: { padding: "20px 28px 16px", borderBottom: "1px solid rgba(255,255,255,.06)", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between" },
-        body: { flex: 1, overflowY: "auto" as const, padding: "28px" },
-        card: { background: "rgba(12,24,50,.65)", backdropFilter: "blur(20px)", border: "1px solid rgba(255,255,255,.07)", borderRadius: 16 },
-        modal: { position: "fixed" as const, inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,.6)", backdropFilter: "blur(8px)" },
-    };
+    const copyLink = () => { setLinkCopied(true); setTimeout(() => setLinkCopied(false), 2000); };
 
     return (
-        <div style={S.page}>
+        <div style={{ height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+
             {/* Header */}
-            <div style={S.header}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 24px", borderBottom: "1.5px solid #E8E4DC", background: "#fff", flexShrink: 0 }}>
                 <div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-                        <Users size={20} style={{ color: "#818CF8" }} />
-                        <h1 style={{ fontSize: 20, fontWeight: 700, fontFamily: "'Space Grotesk',sans-serif", color: "#F1F5F9" }}>Team Members</h1>
-                        <span style={{ padding: "2px 10px", borderRadius: 100, background: "rgba(99,102,241,.15)", color: "#A5B4FC", fontSize: 12, fontWeight: 600, border: "1px solid rgba(99,102,241,.25)" }}>
-                            {members.length} / 5
-                        </span>
-                    </div>
-                    <p style={{ fontSize: 13, color: "#64748B" }}>Manage team access · All crypto keys are verified client-side</p>
+                    <h1 style={{ fontSize: 17, fontWeight: 900, color: "#0D0D0D", fontFamily: "'Plus Jakarta Sans',sans-serif", letterSpacing: "-.02em" }}>Team Members</h1>
+                    <p style={{ fontSize: 12, color: "#A8A49C", marginTop: 2 }}>Manage team access · All crypto keys are verified client-side</p>
                 </div>
-                <button className="btn-primary" onClick={() => setInviteOpen(true)} style={{ gap: 8 }}>
-                    <UserPlus size={16} /> Invite Member
-                </button>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    {!loading && <span style={{ fontSize: 13, color: "#A8A49C", marginRight: 10 }}>{members.length} members</span>}
+                    <button className="btn-primary" onClick={() => setInviteOpen(true)}>
+                        <UserPlus size={15} /> Invite Member
+                    </button>
+                </div>
             </div>
 
-            <div style={S.body}>
-                {/* Plan note */}
-                <div style={{ ...S.card, padding: "14px 20px", marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <Lock size={15} style={{ color: "#22D3EE" }} />
-                        <span style={{ fontSize: 13, color: "#94A3B8" }}>
-                            Free plan · <strong style={{ color: "#E2E8F0" }}>4 / 5 members</strong> used · 1 seat remaining
-                        </span>
+            {/* Body */}
+            <div style={{ flex: 1, overflowY: "auto", padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
+
+                {/* Plan bar */}
+                <div style={{ background: "#fff", border: "1.5px solid #E8E4DC", borderRadius: 14, padding: "13px 18px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <Lock size={13} style={{ color: "#166534" }} />
+                        <span style={{ fontSize: 13, color: "#0D0D0D" }}>Free plan · <strong>{members.length} / 5 members</strong> used · {5 - members.length} seats remaining</span>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ fontSize: 12, color: "#64748B" }}>Invite link:</span>
-                        <code style={{ fontSize: 11, fontFamily: "monospace", color: "#818CF8", background: "rgba(99,102,241,.1)", padding: "3px 10px", borderRadius: 6 }}>
-                            cipherdesk.io/invite/bf9x2k
-                        </code>
-                        <button onClick={copyLink} className="btn-ghost" style={{ padding: "4px 10px", fontSize: 12, gap: 5 }}>
-                            {linkCopied ? <><CheckCheck size={13} style={{ color: "#10B981" }} />Copied!</> : <><Copy size={13} />Copy</>}
+                        <span style={{ fontSize: 12, color: "#A8A49C" }}>Invite link:</span>
+                        <code style={{ fontSize: 11, fontFamily: "monospace", color: "#4F63FF", background: "#EEF2FF", padding: "3px 10px", borderRadius: 6 }}>cipherdesk.io/invite/bf9x2k</code>
+                        <button onClick={copyLink} style={{ display: "flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 7, border: "1.5px solid #E8E4DC", background: "#fff", fontSize: 12, fontWeight: 600, color: "#0D0D0D", cursor: "pointer" }}>
+                            {linkCopied ? <><CheckCheck size={12} style={{ color: "#16A34A" }} />Copied!</> : <><Copy size={12} />Copy</>}
                         </button>
                     </div>
                 </div>
 
-                {/* Members table */}
-                <div style={S.card}>
-                    <div style={{ padding: "14px 20px", borderBottom: "1px solid rgba(255,255,255,.06)", display: "grid", gridTemplateColumns: "1fr auto auto auto auto", gap: 16, fontSize: 11, fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: ".06em", color: "#475569" }}>
-                        <span>Member</span>
-                        <span style={{ textAlign: "center" }}>Role</span>
-                        <span style={{ textAlign: "center" }}>Joined</span>
-                        <span style={{ textAlign: "center" }}>Key Status</span>
-                        <span />
+                {/* Table */}
+                <div style={{ background: "#fff", border: "1.5px solid #E8E4DC", borderRadius: 14, overflow: "hidden" }}>
+                    {/* Header */}
+                    <div style={{ display: "grid", gridTemplateColumns: "1.5fr 150px 120px 110px 40px", padding: "10px 20px", borderBottom: "1.5px solid #E8E4DC", background: "#F5F0E8" }}>
+                        {["Member", "Role", "Joined", "Key Ver.", ""].map(h => (
+                            <span key={h} style={{ fontSize: 11, fontWeight: 700, color: "#6B675E", textTransform: "uppercase", letterSpacing: ".06em" }}>{h}</span>
+                        ))}
                     </div>
 
-                    {members.map((m, i) => (
-                        <div key={m.id} style={{
-                            padding: "16px 20px",
-                            borderBottom: i < members.length - 1 ? "1px solid rgba(255,255,255,.04)" : "none",
-                            display: "grid", gridTemplateColumns: "1fr auto auto auto auto",
-                            gap: 16, alignItems: "center",
-                            transition: "background .15s",
-                        }}
-                            onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,.02)"}
-                            onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "transparent"}>
-
-                            {/* Avatar + info */}
-                            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                                <div style={{ position: "relative", flexShrink: 0 }}>
-                                    <div style={{ width: 38, height: 38, borderRadius: 10, background: m.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, color: "#fff", boxShadow: `0 0 14px ${m.color}55` }}>
-                                        {m.av}
-                                    </div>
-                                    {m.online && <div style={{ position: "absolute", bottom: -2, right: -2, width: 10, height: 10, borderRadius: "50%", background: "#10B981", border: "2px solid #030711" }} />}
-                                </div>
-                                <div>
-                                    <div style={{ fontSize: 14, fontWeight: 600, color: "#E2E8F0" }}>{m.name}</div>
-                                    <div style={{ fontSize: 12, color: "#64748B" }}>{m.email} · {m.devices} device{m.devices > 1 ? "s" : ""}</div>
-                                </div>
-                            </div>
-
-                            {/* Role */}
-                            <div style={{ display: "flex", justifyContent: "center" }}>
-                                <RoleBadge role={m.role} />
-                            </div>
-
-                            {/* Joined */}
-                            <div style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "center" }}>
-                                <Clock size={12} style={{ color: "#475569" }} />
-                                <span style={{ fontSize: 12, color: "#64748B" }}>{m.joined}</span>
-                            </div>
-
-                            {/* Key verification */}
-                            <div style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "center" }}>
-                                {m.keyVerified ? (
-                                    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, color: "#6EE7B7", background: "rgba(16,185,129,.1)", border: "1px solid rgba(16,185,129,.2)", padding: "3px 10px", borderRadius: 100, fontWeight: 600 }}>
-                                        <ShieldCheck size={11} />Verified
-                                    </span>
-                                ) : (
-                                    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, color: "#FCD34D", background: "rgba(245,158,11,.1)", border: "1px solid rgba(245,158,11,.2)", padding: "3px 10px", borderRadius: 100, fontWeight: 600 }}>
-                                        <Clock size={11} />Pending
-                                    </span>
-                                )}
-                            </div>
-
-                            {/* Actions */}
-                            <div style={{ display: "flex", justifyContent: "center" }}>
-                                {m.role !== "owner" && (
-                                    <button className="btn-ghost" style={{ padding: "4px 8px" }}>
-                                        <MoreHorizontal size={16} />
-                                    </button>
-                                )}
-                            </div>
+                    {loading ? (
+                        <div style={{ padding: 40, display: "flex", justifyContent: "center" }}>
+                            <div style={{ width: 28, height: 28, borderRadius: "50%", border: "2px solid #E8E4DC", borderTopColor: "#0D0D0D", animation: "spin 1s linear infinite" }} />
                         </div>
-                    ))}
+                    ) : (members.map((m, i) => {
+                        const bg = getAvatarBg(m.id);
+                        const initials = m.full_name ? m.full_name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2) : m.email.slice(0, 2).toUpperCase();
+                        const isMe = user?.id === m.id;
+                        const date = new Date(m.created_at).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" });
+
+                        return (
+                            <div key={m.id}
+                                style={{ display: "grid", gridTemplateColumns: "1.5fr 150px 120px 110px 40px", alignItems: "center", padding: "14px 20px", borderBottom: i < members.length - 1 ? "1px solid #F0EBE3" : "none", transition: "background .15s" }}
+                                onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "#FAFAF7"}
+                                onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "transparent"}>
+
+                                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                                    <div style={{ position: "relative", flexShrink: 0 }}>
+                                        <div style={{ width: 38, height: 38, borderRadius: 11, background: bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, color: "#fff" }}>{initials}</div>
+                                        {isMe && <div style={{ position: "absolute", bottom: -2, right: -2, width: 10, height: 10, borderRadius: "50%", background: "#22C55E", border: "2px solid #fff" }} />}
+                                    </div>
+                                    <div style={{ minWidth: 0 }}>
+                                        <div style={{ fontSize: 13, fontWeight: 700, color: "#0D0D0D", display: "flex", alignItems: "center", gap: 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                            {m.full_name || "Unknown"}
+                                            {isMe && <span style={{ fontSize: 9, fontWeight: 800, padding: "2px 5px", borderRadius: 4, background: "#AAEF45", color: "#0D0D0D" }}>YOU</span>}
+                                        </div>
+                                        <div style={{ fontSize: 12, color: "#A8A49C", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.email}</div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <select style={{ fontSize: 12, background: "transparent", border: "none", outline: "none", cursor: "pointer", color: "#0D0D0D", fontWeight: 700 }}
+                                        value={m.role} onChange={e => { if (user) updateRole(m.id, e.target.value, user.id) }} disabled={isMe}>
+                                        <option value="member">Member</option>
+                                        <option value="admin">Admin</option>
+                                        <option value="owner">Owner</option>
+                                    </select>
+                                </div>
+
+                                <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "#A8A49C" }}>
+                                    <Clock size={11} />{date}
+                                </div>
+
+                                <div>
+                                    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 700, padding: "3px 9px", borderRadius: 999, background: "#F0FDF4", color: "#166534", border: "1px solid #BBF7D0" }}><ShieldCheck size={10} />Verified</span>
+                                </div>
+
+                                <div>{!isMe && m.role !== "owner" && <button style={{ border: "none", background: "none", cursor: "pointer", color: "#C8C4BC", padding: 4 }}><MoreHorizontal size={16} /></button>}</div>
+                            </div>
+                        );
+                    }))}
                 </div>
 
-                {/* Key verification notice */}
-                <div style={{ ...S.card, padding: "16px 20px", marginTop: 16, display: "flex", alignItems: "flex-start", gap: 12 }}>
-                    <KeyRound size={16} style={{ color: "#22D3EE", flexShrink: 0, marginTop: 2 }} />
+                {/* Key verification info */}
+                <div style={{ background: "#F0FDF4", border: "1.5px solid #BBF7D0", borderRadius: 14, padding: "14px 18px", display: "flex", alignItems: "flex-start", gap: 12 }}>
+                    <KeyRound size={16} style={{ color: "#166534", flexShrink: 0, marginTop: 1 }} />
                     <div>
-                        <p style={{ fontSize: 13, fontWeight: 600, color: "#E2E8F0", marginBottom: 4 }}>How key verification works</p>
-                        <p style={{ fontSize: 12, color: "#94A3B8", lineHeight: 1.65 }}>
-                            Each member&apos;s Ed25519 public key is verified against a fingerprint displayed in your authenticator app.
-                            Compare fingerprints out-of-band (in person or via a secure call) to confirm identity.
-                            The server never participates in this verification — it&apos;s purely peer-to-peer.
+                        <p style={{ fontSize: 13, fontWeight: 700, color: "#166534", marginBottom: 4 }}>How key verification works</p>
+                        <p style={{ fontSize: 12, color: "#166534", lineHeight: 1.65, opacity: .85 }}>
+                            Each member&apos;s Ed25519 public key is verified against a fingerprint displayed in your authenticator app. Compare fingerprints out-of-band (in person or via a secure call) to confirm identity. The server never participates in this verification — it&apos;s purely peer-to-peer.
                         </p>
                     </div>
                 </div>
@@ -182,41 +160,39 @@ export default function MembersPage() {
 
             {/* Invite Modal */}
             {inviteOpen && (
-                <div style={S.modal} onClick={e => e.target === e.currentTarget && setInviteOpen(false)}>
-                    <div style={{ background: "rgba(8,16,40,.98)", border: "1px solid rgba(255,255,255,.1)", borderRadius: 20, padding: 32, width: "100%", maxWidth: 460, backdropFilter: "blur(24px)", boxShadow: "0 32px 80px rgba(0,0,0,.8)" }} className="animate-scale-in">
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
-                            <h2 style={{ fontSize: 18, fontWeight: 700, fontFamily: "'Space Grotesk',sans-serif", color: "#F1F5F9" }}>Invite a team member</h2>
-                            <button className="btn-ghost" style={{ padding: 6 }} onClick={() => setInviteOpen(false)}><X size={18} /></button>
+                <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(13,13,13,.4)", backdropFilter: "blur(6px)" }}
+                    onClick={e => e.target === e.currentTarget && setInviteOpen(false)}>
+                    <div style={{ background: "#fff", borderRadius: 20, padding: 28, width: "100%", maxWidth: 440, boxShadow: "0 20px 60px rgba(0,0,0,.15)" }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 22 }}>
+                            <h2 style={{ fontSize: 17, fontWeight: 900, color: "#0D0D0D", fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Invite a team member</h2>
+                            <button onClick={() => setInviteOpen(false)} style={{ border: "none", background: "none", cursor: "pointer", color: "#A8A49C", padding: 4 }}><X size={18} /></button>
                         </div>
 
                         {inviteSent ? (
                             <div style={{ textAlign: "center", padding: "24px 0" }}>
-                                <div style={{ width: 56, height: 56, borderRadius: "50%", background: "rgba(16,185,129,.15)", border: "1px solid rgba(16,185,129,.3)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
-                                    <Check size={24} style={{ color: "#10B981" }} />
+                                <div style={{ width: 56, height: 56, borderRadius: "50%", background: "#AAEF45", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}>
+                                    <Check size={24} style={{ color: "#0D0D0D" }} />
                                 </div>
-                                <p style={{ fontSize: 16, fontWeight: 600, color: "#F1F5F9", marginBottom: 6 }}>Invite sent!</p>
-                                <p style={{ fontSize: 13, color: "#64748B" }}>They&apos;ll receive an encrypted invite link via email.</p>
+                                <p style={{ fontSize: 16, fontWeight: 800, color: "#0D0D0D", marginBottom: 6 }}>Invite sent!</p>
+                                <p style={{ fontSize: 13, color: "#A8A49C" }}>They&apos;ll receive an encrypted invite link via email.</p>
                             </div>
                         ) : (
-                            <form onSubmit={handleInvite} style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+                            <form onSubmit={handleInvite} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                                 <div>
-                                    <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "#CBD5E1", marginBottom: 8 }}>Email address</label>
+                                    <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#2D2D2D", marginBottom: 8 }}>Email address</label>
                                     <input type="email" className="input-field" placeholder="colleague@company.com"
                                         value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} required autoFocus />
                                 </div>
                                 <div>
-                                    <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "#CBD5E1", marginBottom: 8 }}>Role</label>
+                                    <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#2D2D2D", marginBottom: 8 }}>Role</label>
                                     <select className="input-field" value={inviteRole} onChange={e => setInviteRole(e.target.value as Role)}>
                                         <option value="member">Member — can view and post</option>
                                         <option value="admin">Admin — can manage channels and members</option>
                                     </select>
                                 </div>
-                                <div style={{ padding: 14, borderRadius: 10, background: "rgba(6,182,212,.05)", border: "1px solid rgba(6,182,212,.12)", display: "flex", alignItems: "flex-start", gap: 10 }}>
-                                    <Lock size={13} style={{ color: "#22D3EE", flexShrink: 0, marginTop: 2 }} />
-                                    <p style={{ fontSize: 12, color: "#94A3B8" }}>
-                                        An encrypted invite link is generated. When they accept, their browser generates a local Ed25519/X25519 keypair.
-                                        Their private key never leaves their device.
-                                    </p>
+                                <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 10, padding: "11px 14px", display: "flex", gap: 10 }}>
+                                    <Lock size={13} style={{ color: "#166534", flexShrink: 0, marginTop: 1 }} />
+                                    <p style={{ fontSize: 12, color: "#166534", lineHeight: 1.55 }}>An encrypted invite link is generated. When they accept, their browser generates a local Ed25519/X25519 keypair. Their private key never leaves their device.</p>
                                 </div>
                                 <button type="submit" className="btn-primary" style={{ justifyContent: "center", padding: "12px" }}>
                                     <Mail size={15} /> Send Encrypted Invite

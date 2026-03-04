@@ -1,23 +1,8 @@
 "use client";
-
-import Link from "next/link";
 import { useState } from "react";
 import {
-    Sparkles,
-    Lock,
-    Brain,
-    ListChecks,
-    FileText,
-    Mail,
-    ChevronRight,
-    RefreshCw,
-    Clock,
-    Zap,
-    Shield,
-    Star,
-    MessageSquare,
-    CheckSquare,
-    TrendingUp,
+    Sparkles, Lock, Brain, ListChecks, FileText, Mail,
+    RefreshCw, Clock, Shield, TrendingUp,
 } from "lucide-react";
 
 const DECISIONS = [
@@ -44,196 +29,181 @@ const CHAT_SUMMARY = `Over the past week, the team focused on:
 
 **Deploy pipeline** — Rahul identified and fixed the staging env variable issue that broke builds last week.`;
 
+const PCOLORS: Record<string, { bg: string; color: string }> = {
+    High: { bg: "#FEE2E2", color: "#991B1B" },
+    Medium: { bg: "#FEF9C3", color: "#854D0E" },
+    Low: { bg: "#F3F4F6", color: "#6B7280" },
+};
+
+const CARD: React.CSSProperties = { background: "#fff", borderRadius: 16, border: "1.5px solid #E8E4DC", padding: 20 };
+
 export default function AiPage() {
     const [generating, setGenerating] = useState(false);
     const [generated, setGenerated] = useState(true);
     const [addedTasks, setAddedTasks] = useState<string[]>([]);
 
-    const addTask = (title: string) => {
-        setAddedTasks((prev) => [...prev, title]);
-    };
+    const addTask = (title: string) => setAddedTasks(p => [...p, title]);
 
     const regenerate = () => {
-        setGenerating(true);
-        setGenerated(false);
-        setTimeout(() => {
-            setGenerating(false);
-            setGenerated(true);
-        }, 1800);
+        setGenerating(true); setGenerated(false);
+        setTimeout(() => { setGenerating(false); setGenerated(true); }, 1800);
     };
 
     return (
-        <div className="h-full flex flex-col overflow-hidden">
+        <div style={{ height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-surface-border flex-shrink-0">
-                <div className="flex items-center gap-3">
-                    <h1 className="text-lg font-bold text-slate-100">AI Digest</h1>
-                    <span className="badge-warning gap-1">
-                        <Sparkles size={10} />
-                        Pro Feature
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 24px", borderBottom: "1.5px solid #E8E4DC", background: "#fff", flexShrink: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <h1 style={{ fontSize: 17, fontWeight: 900, color: "#0D0D0D", fontFamily: "'Plus Jakarta Sans',sans-serif", letterSpacing: "-.02em" }}>AI Digest</h1>
+                    <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 9px", borderRadius: 999, background: "#FFFBEB", color: "#D97706", border: "1px solid #FDE68A", display: "flex", alignItems: "center", gap: 4 }}>
+                        <Sparkles size={10} /> Pro Feature
                     </span>
-                    <span className="encrypted-label">
-                        <Lock size={10} />
-                        Client-Decrypted Only
+                    <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 9px", borderRadius: 999, background: "#F0FDF4", color: "#166534", border: "1px solid #BBF7D0", display: "flex", alignItems: "center", gap: 4 }}>
+                        <Lock size={9} /> Client-Decrypted Only
                     </span>
                 </div>
-                <div className="flex items-center gap-2">
-                    <span className="text-xs text-slate-500 flex items-center gap-1.5">
-                        <Clock size={12} />
-                        Last generated: Today, 8:00 AM
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{ fontSize: 12, color: "#A8A49C", display: "flex", alignItems: "center", gap: 5 }}>
+                        <Clock size={12} /> Last generated: Today, 8:00 AM
                     </span>
-                    <button
-                        onClick={regenerate}
-                        disabled={generating}
-                        className="btn-secondary gap-2 text-sm"
-                    >
-                        <RefreshCw size={14} className={generating ? "animate-spin" : ""} />
-                        {generating ? "Generating..." : "Regenerate"}
+                    <button onClick={regenerate} disabled={generating}
+                        style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 14px", borderRadius: 10, border: "1.5px solid #E8E4DC", background: "#fff", fontSize: 13, fontWeight: 600, color: "#0D0D0D", cursor: "pointer", opacity: generating ? .6 : 1 }}>
+                        <RefreshCw size={14} style={{ animation: generating ? "spin 1s linear infinite" : "none" }} />
+                        {generating ? "Generating…" : "Regenerate"}
                     </button>
                 </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                {/* How it works banner */}
-                <div className="flex items-start gap-3 p-4 rounded-xl bg-primary-500/5 border border-primary-500/20">
-                    <Shield size={16} className="text-primary-400 flex-shrink-0 mt-0.5" />
+            <div style={{ flex: 1, overflowY: "auto", padding: 24, display: "flex", flexDirection: "column", gap: 18 }}>
+
+                {/* Privacy banner */}
+                <div style={{ background: "#F0FDF4", border: "1.5px solid #BBF7D0", borderRadius: 14, padding: "13px 18px", display: "flex", alignItems: "flex-start", gap: 12 }}>
+                    <Shield size={16} style={{ color: "#166534", flexShrink: 0, marginTop: 1 }} />
                     <div>
-                        <p className="text-sm font-semibold text-slate-200 mb-0.5">Privacy-preserving AI</p>
-                        <p className="text-xs text-slate-400 leading-relaxed">
-                            Chat is decrypted <strong className="text-slate-300">locally on your device</strong> before AI processing.
+                        <p style={{ fontSize: 13, fontWeight: 700, color: "#166534", marginBottom: 3 }}>Privacy-preserving AI</p>
+                        <p style={{ fontSize: 12, color: "#166534", lineHeight: 1.6, opacity: .85 }}>
+                            Chat is decrypted <strong>locally on your device</strong> before AI processing.
                             Summaries are generated in-browser. No raw messages, no conversation logs, no AI training data sent to servers.
                         </p>
                     </div>
                 </div>
 
+                {/* Generating state */}
                 {generating && (
-                    <div className="flex flex-col items-center py-16 gap-4">
-                        <div className="w-14 h-14 rounded-2xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center">
-                            <Brain size={26} className="text-yellow-400 animate-pulse" />
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "48px 0", gap: 14 }}>
+                        <div style={{ width: 56, height: 56, borderRadius: 18, background: "#FFFBEB", border: "1.5px solid #FDE68A", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <Brain size={26} style={{ color: "#D97706", animation: "pulse 1.5s ease-in-out infinite" }} />
                         </div>
-                        <p className="text-sm text-slate-300 font-semibold">Decrypting and analyzing locally...</p>
-                        <p className="text-xs text-slate-500 font-mono">Processing #general · #engineering · #builds</p>
-                        <div className="w-48 h-1 bg-surface-border rounded-full overflow-hidden">
-                            <div className="h-full bg-yellow-400 rounded-full w-2/3 animate-pulse" />
+                        <p style={{ fontSize: 14, fontWeight: 700, color: "#0D0D0D" }}>Decrypting and analyzing locally…</p>
+                        <p style={{ fontSize: 12, fontFamily: "monospace", color: "#A8A49C" }}>Processing #general · #engineering · #builds</p>
+                        <div style={{ width: 200, height: 5, borderRadius: 999, background: "#E8E4DC", overflow: "hidden" }}>
+                            <div style={{ height: "100%", width: "66%", background: "#AAEF45", borderRadius: 999, animation: "pulse 1.5s ease-in-out infinite" }} />
                         </div>
                     </div>
                 )}
 
-                {generated && !generating && (
-                    <>
-                        {/* Weekly summary */}
-                        <div className="card">
-                            <div className="flex items-center gap-3 mb-4">
-                                <div className="w-9 h-9 rounded-xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center">
-                                    <FileText size={17} className="text-yellow-400" />
+                {generated && !generating && (<>
+
+                    {/* Weekly summary */}
+                    <div style={CARD}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
+                            <div style={{ width: 38, height: 38, borderRadius: 12, background: "#FFFBEB", border: "1.5px solid #FDE68A", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                <FileText size={17} style={{ color: "#D97706" }} />
+                            </div>
+                            <div>
+                                <h2 style={{ fontSize: 15, fontWeight: 800, color: "#0D0D0D", fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Weekly Summary</h2>
+                                <p style={{ fontSize: 12, color: "#A8A49C" }}>Feb 24 – Mar 3 · 4 channels · 127 messages</p>
+                            </div>
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                            {CHAT_SUMMARY.split("\n\n").map((para, i) => (
+                                <p key={i} style={{ fontSize: 13, color: "#2D2D2D", lineHeight: 1.7 }}
+                                    dangerouslySetInnerHTML={{ __html: para.replace(/\*\*(.*?)\*\*/g, '<strong style="color:#0D0D0D;font-weight:800">$1</strong>') }}
+                                />
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* 2-col: decisions + tasks */}
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+
+                        {/* Key decisions */}
+                        <div style={CARD}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+                                <div style={{ width: 36, height: 36, borderRadius: 11, background: "#F5F0E8", border: "1.5px solid #E8E4DC", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                    <TrendingUp size={17} style={{ color: "#0D0D0D" }} />
                                 </div>
                                 <div>
-                                    <h2 className="text-base font-bold text-slate-100">Weekly Summary</h2>
-                                    <p className="text-xs text-slate-400">Feb 24 – Mar 3 · 4 channels · 127 messages</p>
+                                    <h2 style={{ fontSize: 14, fontWeight: 800, color: "#0D0D0D", fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Key Decisions</h2>
+                                    <p style={{ fontSize: 12, color: "#A8A49C" }}>Extracted from conversations</p>
                                 </div>
                             </div>
-                            <div className="text-sm text-slate-300 leading-relaxed space-y-3 whitespace-pre-line">
-                                {CHAT_SUMMARY.split("\n\n").map((para, i) => (
-                                    <p key={i}
-                                        dangerouslySetInnerHTML={{
-                                            __html: para
-                                                .replace(/\*\*(.*?)\*\*/g, '<strong class="text-slate-200">$1</strong>')
-                                        }}
-                                    />
+                            <ul style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                                {DECISIONS.map((d, i) => (
+                                    <li key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                                        <div style={{ width: 22, height: 22, borderRadius: "50%", background: "#AAEF45", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>
+                                            <span style={{ fontSize: 10, fontWeight: 900, color: "#0D0D0D" }}>{i + 1}</span>
+                                        </div>
+                                        <span style={{ fontSize: 13, color: "#2D2D2D", lineHeight: 1.55 }}>{d}</span>
+                                    </li>
                                 ))}
-                            </div>
+                            </ul>
                         </div>
 
-                        <div className="grid md:grid-cols-2 gap-6">
-                            {/* Key decisions */}
-                            <div className="card">
-                                <div className="flex items-center gap-3 mb-4">
-                                    <div className="w-9 h-9 rounded-xl bg-accent-400/10 border border-accent-400/20 flex items-center justify-center">
-                                        <TrendingUp size={17} className="text-accent-400" />
-                                    </div>
-                                    <div>
-                                        <h2 className="text-sm font-bold text-slate-100">Key Decisions</h2>
-                                        <p className="text-xs text-slate-400">Extracted from conversations</p>
-                                    </div>
+                        {/* Suggested tasks */}
+                        <div style={CARD}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+                                <div style={{ width: 36, height: 36, borderRadius: 11, background: "#F0FDF4", border: "1.5px solid #BBF7D0", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                    <ListChecks size={17} style={{ color: "#166534" }} />
                                 </div>
-                                <ul className="space-y-3">
-                                    {DECISIONS.map((d, i) => (
-                                        <li key={i} className="flex items-start gap-2.5 text-sm text-slate-300">
-                                            <div className="w-5 h-5 rounded-full bg-accent-400/15 border border-accent-400/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                                                <span className="text-[10px] font-bold text-accent-400">{i + 1}</span>
-                                            </div>
-                                            {d}
-                                        </li>
-                                    ))}
-                                </ul>
+                                <div>
+                                    <h2 style={{ fontSize: 14, fontWeight: 800, color: "#0D0D0D", fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Suggested Tasks</h2>
+                                    <p style={{ fontSize: 12, color: "#A8A49C" }}>AI found action items in chat</p>
+                                </div>
                             </div>
-
-                            {/* Auto task suggestions */}
-                            <div className="card">
-                                <div className="flex items-center gap-3 mb-4">
-                                    <div className="w-9 h-9 rounded-xl bg-primary-500/10 border border-primary-500/20 flex items-center justify-center">
-                                        <ListChecks size={17} className="text-primary-400" />
-                                    </div>
-                                    <div>
-                                        <h2 className="text-sm font-bold text-slate-100">Suggested Tasks</h2>
-                                        <p className="text-xs text-slate-400">AI found action items in chat</p>
-                                    </div>
-                                </div>
-                                <ul className="space-y-3">
-                                    {AUTO_TASKS.map((t) => {
-                                        const added = addedTasks.includes(t.title);
-                                        return (
-                                            <li key={t.title} className="flex items-center gap-3">
-                                                <div className="flex-1">
-                                                    <p className={`text-sm font-medium ${added ? "text-slate-500 line-through" : "text-slate-200"}`}>
-                                                        {t.title}
-                                                    </p>
-                                                    <div className="flex items-center gap-2 mt-0.5">
-                                                        <span className={`text-xs font-semibold ${t.priority === "High" ? "text-red-400" : t.priority === "Medium" ? "text-yellow-400" : "text-slate-500"}`}>
-                                                            {t.priority}
-                                                        </span>
-                                                        <span className="text-xs text-slate-500">{t.from}</span>
-                                                    </div>
+                            <ul style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                                {AUTO_TASKS.map(t => {
+                                    const added = addedTasks.includes(t.title);
+                                    const pc = PCOLORS[t.priority];
+                                    return (
+                                        <li key={t.title} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                            <div style={{ flex: 1 }}>
+                                                <p style={{ fontSize: 13, fontWeight: 600, color: added ? "#A8A49C" : "#0D0D0D", textDecoration: added ? "line-through" : "none" }}>{t.title}</p>
+                                                <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3 }}>
+                                                    <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 7px", borderRadius: 999, background: pc.bg, color: pc.color }}>{t.priority}</span>
+                                                    <span style={{ fontSize: 11, color: "#A8A49C" }}>{t.from}</span>
                                                 </div>
-                                                <button
-                                                    onClick={() => addTask(t.title)}
-                                                    disabled={added}
-                                                    className={`text-xs px-3 py-1.5 rounded-lg flex-shrink-0 transition-all ${added
-                                                            ? "bg-green-500/10 text-green-400 border border-green-500/20 cursor-default"
-                                                            : "btn-secondary py-1"
-                                                        }`}
-                                                >
-                                                    {added ? "✓ Added" : "+ Add Task"}
-                                                </button>
-                                            </li>
-                                        );
-                                    })}
-                                </ul>
-                            </div>
+                                            </div>
+                                            <button onClick={() => addTask(t.title)} disabled={added}
+                                                style={{ flexShrink: 0, padding: "5px 12px", borderRadius: 8, border: "1.5px solid", borderColor: added ? "#BBF7D0" : "#E8E4DC", background: added ? "#F0FDF4" : "#fff", fontSize: 12, fontWeight: 700, color: added ? "#166534" : "#0D0D0D", cursor: added ? "default" : "pointer", display: "flex", alignItems: "center", gap: 5 }}>
+                                                {added ? "✓ Added" : "+ Add Task"}
+                                            </button>
+                                        </li>
+                                    );
+                                })}
+                            </ul>
                         </div>
+                    </div>
 
-                        {/* Encrypted digest email */}
-                        <div className="card">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-9 h-9 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
-                                        <Mail size={17} className="text-violet-400" />
-                                    </div>
-                                    <div>
-                                        <h2 className="text-sm font-bold text-slate-100">Weekly Encrypted Digest</h2>
-                                        <p className="text-xs text-slate-400">
-                                            Send this summary as an <span className="font-mono text-accent-400">encrypted email</span> to your team
-                                        </p>
-                                    </div>
+                    {/* Encrypted digest */}
+                    <div style={CARD}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                                <div style={{ width: 38, height: 38, borderRadius: 12, background: "#F5F3FF", border: "1.5px solid #DDD6FE", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                    <Mail size={17} style={{ color: "#7C3AED" }} />
                                 </div>
-                                <button className="btn-primary gap-2 text-sm">
-                                    <Mail size={14} />
-                                    Send Digest
-                                </button>
+                                <div>
+                                    <h2 style={{ fontSize: 14, fontWeight: 800, color: "#0D0D0D", fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Weekly Encrypted Digest</h2>
+                                    <p style={{ fontSize: 12, color: "#A8A49C" }}>Send this summary as an <span style={{ fontFamily: "monospace", color: "#AAEF45", background: "#0D0D0D", padding: "1px 5px", borderRadius: 4 }}>encrypted email</span> to your team</p>
+                                </div>
                             </div>
+                            <button className="btn-primary" style={{ padding: "9px 18px" }}>
+                                <Mail size={14} /> Send Digest
+                            </button>
                         </div>
-                    </>
-                )}
+                    </div>
+                </>)}
             </div>
         </div>
     );

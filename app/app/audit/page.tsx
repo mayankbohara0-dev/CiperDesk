@@ -1,167 +1,155 @@
 "use client";
 import { useState } from "react";
 import {
-    ScrollText, Shield, Lock, Key, Download, Filter,
-    MessageSquare, FolderLock, Users, Settings, LogIn,
-    LogOut, AlertTriangle, RefreshCw, CheckSquare, ChevronDown,
+    ScrollText, Shield, Lock, Download, Filter,
+    FolderLock, Users, LogIn, AlertTriangle, CheckSquare, Check, Clock,
 } from "lucide-react";
+import { useAuditLog, type AuditLogEntry } from "@/lib/hooks";
 
 type EventType = "auth" | "encryption" | "file" | "member" | "task" | "security";
 
-interface AuditEvent {
-    id: number; type: EventType; action: string;
-    actor: string; av: string; color: string;
-    detail: string; ip: string; ts: string; severity: "info" | "warn" | "critical";
+const TYPE: Record<string, { icon: React.ElementType; iconBg: string; iconColor: string }> = {
+    auth: { icon: LogIn, iconBg: "#EEF2FF", iconColor: "#4F63FF" },
+    encryption: { icon: Lock, iconBg: "#ECFEFF", iconColor: "#0891B2" },
+    file: { icon: FolderLock, iconBg: "#F5F3FF", iconColor: "#7C3AED" },
+    member: { icon: Users, iconBg: "#F0FDF4", iconColor: "#16A34A" },
+    task: { icon: CheckSquare, iconBg: "#FFFBEB", iconColor: "#D97706" },
+    security: { icon: Shield, iconBg: "#FFF1F2", iconColor: "#E11D48" },
+};
+
+const SEV: Record<string, { label: string; bg: string; color: string }> = {
+    info: { label: "Info", bg: "#ECFEFF", color: "#0891B2" },
+    warn: { label: "Warning", bg: "#FFFBEB", color: "#D97706" },
+    critical: { label: "Critical", bg: "#FFF1F2", color: "#E11D48" },
+};
+
+const FILTERS = ["all", "auth", "encryption", "file", "member", "task", "security"] as const;
+const SEVS = ["all", "info", "warn", "critical"] as const;
+
+function getAvatarBg(id: string) {
+    const colors = ["#4F63FF", "#9333EA", "#2E7D32", "#D97706", "#DC2626", "#0891B2"];
+    let hash = 0;
+    for (let i = 0; i < id.length; i++) hash = id.charCodeAt(i) + ((hash << 5) - hash);
+    return colors[Math.abs(hash) % colors.length];
 }
 
-const EVENTS: AuditEvent[] = [
-    { id: 1, type: "security", action: "Key rotation completed", actor: "Arjun M.", av: "AM", color: "#6366F1", detail: "Workspace AES-256 key rotated. All member keys re-wrapped.", ip: "10.0.1.42", ts: "2026-03-03 21:02", severity: "info" },
-    { id: 2, type: "auth", action: "New device approved", actor: "Priya S.", av: "PS", color: "#8B5CF6", detail: "MacBook Pro 14\" — Bangalore, IN · Device fingerprint verified", ip: "10.0.1.55", ts: "2026-03-03 20:44", severity: "info" },
-    { id: 3, type: "member", action: "Member invited", actor: "Arjun M.", av: "AM", color: "#6366F1", detail: "Invited divya@buildfast.io as Member role", ip: "10.0.1.42", ts: "2026-03-03 19:31", severity: "info" },
-    { id: 4, type: "file", action: "File uploaded to vault", actor: "Rahul N.", av: "RN", color: "#10B981", detail: "design-v3.figma (4.2 MB) — AES-256-GCM chunk-encrypted (9 chunks)", ip: "10.0.1.71", ts: "2026-03-03 18:14", severity: "info" },
-    { id: 5, type: "security", action: "Failed 2FA attempt", actor: "Unknown", av: "?", color: "#EF4444", detail: "3 consecutive failed 2FA attempts — account temporarily locked", ip: "185.2.44.11", ts: "2026-03-03 17:02", severity: "critical" },
-    { id: 6, type: "auth", action: "Login successful", actor: "Priya S.", av: "PS", color: "#8B5CF6", detail: "Authenticated via Argon2id + TOTP 2FA", ip: "10.0.1.55", ts: "2026-03-03 16:55", severity: "info" },
-    { id: 7, type: "encryption", action: "Message decrypted", actor: "Arjun M.", av: "AM", color: "#6366F1", detail: "#general channel — 47 messages decrypted client-side", ip: "10.0.1.42", ts: "2026-03-03 16:30", severity: "info" },
-    { id: 8, type: "task", action: "Task board accessed", actor: "Divya K.", av: "DK", color: "#F59E0B", detail: "Sprint board decrypted — 12 task records", ip: "10.0.1.88", ts: "2026-03-03 15:44", severity: "info" },
-    { id: 9, type: "security", action: "Unrecognized device login attempt", actor: "Arjun M.", av: "AM", color: "#6366F1", detail: "New device detected — approval email sent", ip: "203.0.113.4", ts: "2026-03-03 14:28", severity: "warn" },
-    { id: 10, type: "file", action: "File downloaded", actor: "Priya S.", av: "PS", color: "#8B5CF6", detail: "architecture-v2.pdf decrypted and downloaded (2.1 MB)", ip: "10.0.1.55", ts: "2026-03-03 13:12", severity: "info" },
-    { id: 11, type: "member", action: "Role changed", actor: "Arjun M.", av: "AM", color: "#6366F1", detail: "Priya Sharma promoted from Member → Admin", ip: "10.0.1.42", ts: "2026-03-03 12:05", severity: "warn" },
-    { id: 12, type: "auth", action: "Session expired", actor: "Rahul N.", av: "RN", color: "#10B981", detail: "Session timeout after 6hr inactivity. Keys cleared from memory.", ip: "10.0.1.71", ts: "2026-03-02 23:00", severity: "info" },
-];
-
-const TYPE_CONFIG: Record<EventType, { icon: React.ElementType; color: string; bg: string }> = {
-    auth: { icon: LogIn, color: "#818CF8", bg: "rgba(99,102,241,.12)" },
-    encryption: { icon: Lock, color: "#22D3EE", bg: "rgba(6,182,212,.1)" },
-    file: { icon: FolderLock, color: "#A78BFA", bg: "rgba(139,92,246,.12)" },
-    member: { icon: Users, color: "#6EE7B7", bg: "rgba(16,185,129,.1)" },
-    task: { icon: CheckSquare, color: "#FCD34D", bg: "rgba(245,158,11,.1)" },
-    security: { icon: Shield, color: "#FB7185", bg: "rgba(244,63,94,.1)" },
-};
-
-const SEV_CONFIG = {
-    info: { label: "Info", styles: { background: "rgba(6,182,212,.1)", color: "#67E8F9", border: "1px solid rgba(6,182,212,.2)" } },
-    warn: { label: "Warning", styles: { background: "rgba(245,158,11,.1)", color: "#FCD34D", border: "1px solid rgba(245,158,11,.2)" } },
-    critical: { label: "Critical", styles: { background: "rgba(244,63,94,.1)", color: "#FDA4AF", border: "1px solid rgba(244,63,94,.2)" } },
-};
-
 export default function AuditLogPage() {
+    const { logs, loading } = useAuditLog();
     const [filter, setFilter] = useState<"all" | EventType>("all");
     const [sev, setSev] = useState<"all" | "info" | "warn" | "critical">("all");
 
-    const filtered = EVENTS.filter(e =>
+    const filtered = logs.filter(e =>
         (filter === "all" || e.type === filter) &&
         (sev === "all" || e.severity === sev)
     );
 
+    const criticalCount = logs.filter(e => e.severity === "critical").length;
+
     return (
         <div style={{ height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+
             {/* Header */}
-            <div style={{ padding: "20px 28px 16px", borderBottom: "1px solid rgba(255,255,255,.06)", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
-                <div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-                        <ScrollText size={20} style={{ color: "#818CF8" }} />
-                        <h1 style={{ fontSize: 20, fontWeight: 700, fontFamily: "'Space Grotesk',sans-serif", color: "#F1F5F9" }}>Audit Log</h1>
-                        <span style={{ padding: "2px 10px", borderRadius: 100, background: "rgba(239,68,68,.12)", color: "#FDA4AF", fontSize: 12, fontWeight: 600, border: "1px solid rgba(239,68,68,.2)" }}>
-                            1 Critical
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 24px", borderBottom: "1.5px solid #E8E4DC", background: "#fff", flexShrink: 0, flexWrap: "wrap", gap: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <h1 style={{ fontSize: 17, fontWeight: 900, color: "#0D0D0D", fontFamily: "'Plus Jakarta Sans',sans-serif", letterSpacing: "-.02em" }}>Audit Log</h1>
+                    {!loading && criticalCount > 0 && (
+                        <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 9px", borderRadius: 999, background: "#FFF1F2", color: "#E11D48", border: "1px solid #FECDD3" }}>
+                            {criticalCount} Critical
                         </span>
-                    </div>
-                    <p style={{ fontSize: 13, color: "#64748B" }}>Immutable log of all workspace security and encryption events</p>
+                    )}
+                    <span style={{ fontSize: 12, color: "#A8A49C" }}>Immutable · cryptographically signed entries</span>
                 </div>
-                <button className="btn-secondary" style={{ gap: 8, fontSize: 13 }}>
-                    <Download size={15} /> Export Log
+                <button style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 14px", borderRadius: 10, border: "1.5px solid #E8E4DC", background: "#fff", fontSize: 13, fontWeight: 600, color: "#0D0D0D", cursor: "pointer" }}>
+                    <Download size={14} /> Export Log
                 </button>
             </div>
 
-            {/* Filters */}
-            <div style={{ padding: "12px 28px", borderBottom: "1px solid rgba(255,255,255,.05)", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", flexShrink: 0 }}>
-                <Filter size={13} style={{ color: "#64748B" }} />
-                {(["all", "auth", "encryption", "file", "member", "task", "security"] as const).map(f => (
-                    <button key={f} onClick={() => setFilter(f)}
-                        style={{
-                            padding: "5px 14px", borderRadius: 100, fontSize: 12, fontWeight: 500, cursor: "pointer", border: "none",
-                            background: filter === f ? "rgba(99,102,241,.2)" : "rgba(255,255,255,.04)",
-                            color: filter === f ? "#A5B4FC" : "#64748B",
-                            outline: filter === f ? "1px solid rgba(99,102,241,.3)" : "none",
-                            transition: "all .15s",
-                        }}>
-                        {f === "all" ? "All" : f.charAt(0).toUpperCase() + f.slice(1)}
-                    </button>
-                ))}
-                <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
-                    {(["all", "info", "warn", "critical"] as const).map(s => (
-                        <button key={s} onClick={() => setSev(s)}
-                            style={{
-                                padding: "5px 12px", borderRadius: 100, fontSize: 11, fontWeight: 600, cursor: "pointer", border: "none",
-                                background: sev === s ? (s === "critical" ? "rgba(244,63,94,.2)" : s === "warn" ? "rgba(245,158,11,.15)" : "rgba(99,102,241,.2)") : "rgba(255,255,255,.04)",
-                                color: sev === s ? (s === "critical" ? "#FDA4AF" : s === "warn" ? "#FCD34D" : "#A5B4FC") : "#64748B",
-                                transition: "all .15s",
-                            }}>
-                            {s === "all" ? "All severity" : s.charAt(0).toUpperCase() + s.slice(1)}
+            {/* Filter bar */}
+            <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 24px", borderBottom: "1.5px solid #E8E4DC", background: "#fff", flexShrink: 0, flexWrap: "wrap", zIndex: 10 }}>
+                <Filter size={13} style={{ color: "#A8A49C" }} />
+                <div style={{ display: "flex", gap: 5, overflowX: "auto", paddingBottom: 2, scrollbarWidth: "none" }}>
+                    {FILTERS.map(f => (
+                        <button key={f} onClick={() => setFilter(f as typeof filter)}
+                            style={{ padding: "4px 12px", borderRadius: 999, fontSize: 12, fontWeight: 600, cursor: "pointer", border: "1.5px solid", borderColor: filter === f ? "#0D0D0D" : "#E8E4DC", background: filter === f ? "#0D0D0D" : "#fff", color: filter === f ? "#AAEF45" : "#6B675E", transition: "all .15s", whiteSpace: "nowrap" }}>
+                            {f === "all" ? "All events" : f.charAt(0).toUpperCase() + f.slice(1)}
                         </button>
                     ))}
+                </div>
+                <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
+                    {SEVS.map(s => {
+                        return (
+                            <button key={s} onClick={() => setSev(s as typeof sev)}
+                                style={{ padding: "4px 12px", borderRadius: 999, fontSize: 11, fontWeight: 700, cursor: "pointer", border: "1.5px solid", borderColor: sev === s ? "#0D0D0D" : "#E8E4DC", background: sev === s ? "#0D0D0D" : "#fff", color: sev === s ? "#AAEF45" : "#6B675E", transition: "all .15s" }}>
+                                {s === "all" ? "All severity" : s.charAt(0).toUpperCase() + s.slice(1)}
+                            </button>
+                        );
+                    })}
                 </div>
             </div>
 
             {/* Log entries */}
-            <div style={{ flex: 1, overflowY: "auto", padding: "16px 28px" }}>
-                <div style={{ background: "rgba(12,24,50,.6)", backdropFilter: "blur(16px)", border: "1px solid rgba(255,255,255,.07)", borderRadius: 16, overflow: "hidden" }}>
-                    {filtered.length === 0 && (
-                        <div style={{ padding: 48, textAlign: "center", color: "#64748B", fontSize: 14 }}>No events match your filters.</div>
-                    )}
-                    {filtered.map((ev, i) => {
-                        const TC = TYPE_CONFIG[ev.type];
-                        const SC = SEV_CONFIG[ev.severity];
-                        const Icon = TC.icon;
-                        return (
-                            <div key={ev.id} style={{
-                                display: "grid",
-                                gridTemplateColumns: "36px 1fr auto",
-                                gap: 14, alignItems: "flex-start",
-                                padding: "14px 20px",
-                                borderBottom: i < filtered.length - 1 ? "1px solid rgba(255,255,255,.04)" : "none",
-                                transition: "background .15s",
-                                ...(ev.severity === "critical" ? { background: "rgba(244,63,94,.03)" } : {}),
-                            }}
-                                onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,.025)"}
-                                onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = ev.severity === "critical" ? "rgba(244,63,94,.03)" : "transparent"}>
+            <div style={{ flex: 1, overflowY: "auto", padding: 24 }}>
+                <div style={{ background: "#fff", border: "1.5px solid #E8E4DC", borderRadius: 16, overflow: "hidden" }}>
+                    {loading ? (
+                        <div style={{ padding: 48, display: "flex", justifyContent: "center" }}>
+                            <div style={{ width: 28, height: 28, borderRadius: "50%", border: "2px solid #E8E4DC", borderTopColor: "#0D0D0D", animation: "spin 1s linear infinite" }} />
+                        </div>
+                    ) : filtered.length === 0 ? (
+                        <div style={{ padding: 48, textAlign: "center", color: "#A8A49C", fontSize: 14 }}>No events match your filters.</div>
+                    ) : (
+                        filtered.map((ev, i) => {
+                            const t = TYPE[ev.type] || TYPE.system;
+                            const s = SEV[ev.severity] || SEV.info;
+                            const Icon = t?.icon || ScrollText;
 
-                                {/* Icon */}
-                                <div style={{ width: 36, height: 36, borderRadius: 10, background: TC.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                                    <Icon size={16} style={{ color: TC.color }} />
-                                </div>
+                            const actorName = ev.actor?.full_name || ev.actor?.email || "System/Unknown";
+                            const initials = ev.actor_id && actorName !== "System/Unknown" ? actorName.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2) : "SY";
+                            const bg = ev.actor_id ? getAvatarBg(ev.actor_id) : "#6B675E";
+                            const date = new Date(ev.created_at).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
-                                {/* Content */}
-                                <div>
-                                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
-                                        <span style={{ fontSize: 13, fontWeight: 600, color: "#E2E8F0" }}>{ev.action}</span>
-                                        <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "1px 8px", borderRadius: 100, fontSize: 10, fontWeight: 600, ...SC.styles }}>
-                                            {ev.severity === "critical" && <AlertTriangle size={9} />}{SC.label}
-                                        </span>
+                            return (
+                                <div key={ev.id}
+                                    style={{ display: "grid", gridTemplateColumns: "36px 1fr auto", gap: 14, alignItems: "flex-start", padding: "14px 20px", borderBottom: i < filtered.length - 1 ? "1px solid #F0EBE3" : "none", background: ev.severity === "critical" ? "#FFF8F8" : "transparent", transition: "background .15s", cursor: "default" }}
+                                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = ev.severity === "critical" ? "#FFF1F2" : "#FAFAF7"}
+                                    onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = ev.severity === "critical" ? "#FFF8F8" : "transparent"}>
+
+                                    {/* Type icon */}
+                                    <div style={{ width: 36, height: 36, borderRadius: 10, background: t?.iconBg || "#F5F0E8", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                                        <Icon size={16} style={{ color: t?.iconColor || "#6B675E" }} />
                                     </div>
-                                    <p style={{ fontSize: 12, color: "#94A3B8", marginBottom: 6 }}>{ev.detail}</p>
-                                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                            <div style={{ width: 20, height: 20, borderRadius: 6, background: ev.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: "#fff" }}>{ev.av}</div>
-                                            <span style={{ fontSize: 11, color: "#64748B" }}>{ev.actor}</span>
+
+                                    {/* Content */}
+                                    <div>
+                                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
+                                            <span style={{ fontSize: 13, fontWeight: 700, color: "#0D0D0D" }}>{ev.action}</span>
+                                            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "1px 8px", borderRadius: 999, fontSize: 10, fontWeight: 700, background: s.bg, color: s.color }}>
+                                                {ev.severity === "critical" && <AlertTriangle size={9} />}
+                                                {s.label}
+                                            </span>
                                         </div>
-                                        <span style={{ fontSize: 11, color: "#475569", fontFamily: "monospace" }}>IP: {ev.ip}</span>
+                                        <p style={{ fontSize: 12, color: "#6B675E", marginBottom: 6, lineHeight: 1.5 }}>{ev.detail}</p>
+                                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                                <div style={{ width: 20, height: 20, borderRadius: 6, background: bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 800, color: "#fff" }}>{initials}</div>
+                                                <span style={{ fontSize: 11, color: "#A8A49C" }}>{actorName}</span>
+                                            </div>
+                                            {ev.ip && <span style={{ fontSize: 11, color: "#C8C4BC", fontFamily: "monospace" }}>IP: {ev.ip}</span>}
+                                        </div>
                                     </div>
-                                </div>
 
-                                {/* Timestamp */}
-                                <div style={{ fontSize: 11, color: "#475569", fontFamily: "monospace", whiteSpace: "nowrap" as const, paddingTop: 2 }}>{ev.ts}</div>
-                            </div>
-                        );
-                    })}
+                                    {/* Timestamp */}
+                                    <div style={{ fontSize: 11, color: "#A8A49C", fontFamily: "monospace", whiteSpace: "nowrap", paddingTop: 2 }}>{date}</div>
+                                </div>
+                            );
+                        })
+                    )}
                 </div>
 
-                {/* Compliance note */}
-                <div style={{ marginTop: 16, padding: "14px 20px", borderRadius: 14, background: "rgba(6,182,212,.04)", border: "1px solid rgba(6,182,212,.12)", display: "flex", alignItems: "flex-start", gap: 12 }}>
-                    <Shield size={15} style={{ color: "#22D3EE", flexShrink: 0, marginTop: 2 }} />
-                    <p style={{ fontSize: 12, color: "#94A3B8", lineHeight: 1.65 }}>
-                        <strong style={{ color: "#CBD5E1" }}>Audit integrity: </strong>
-                        Every entry is cryptographically signed with the server&apos;s Ed25519 key and stored append-only.
-                        Entries cannot be modified or deleted. Export includes a SHA-256 chain hash for tamper detection.
+                {/* Integrity note */}
+                <div style={{ marginTop: 14, background: "#F0FDF4", border: "1.5px solid #BBF7D0", borderRadius: 14, padding: "13px 18px", display: "flex", alignItems: "flex-start", gap: 10 }}>
+                    <Shield size={14} style={{ color: "#166534", flexShrink: 0, marginTop: 1 }} />
+                    <p style={{ fontSize: 12, color: "#166534", lineHeight: 1.65 }}>
+                        <strong>Audit integrity:</strong> Every entry is cryptographically signed with the server&apos;s Ed25519 key and stored append-only. Entries cannot be modified or deleted. Export includes a SHA-256 chain hash for tamper detection.
                     </p>
                 </div>
             </div>

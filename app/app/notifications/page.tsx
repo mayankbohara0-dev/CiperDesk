@@ -1,230 +1,164 @@
 "use client";
-
 import { useState } from "react";
 import {
-    Bell,
-    Lock,
-    CheckSquare,
-    MessageSquare,
-    UserPlus,
-    Shield,
-    KeyRound,
-    Check,
-    Trash2,
-    CheckCheck,
-    Settings,
+    Bell, Lock, CheckSquare, MessageSquare, UserPlus, Shield,
+    KeyRound, Check, Trash2, CheckCheck, Settings,
 } from "lucide-react";
+import { useNotifications, useUser } from "@/lib/hooks";
+import { supabase } from "@/lib/supabase/client";
 
-type NotifType = "message" | "task" | "security" | "invite" | "system";
-
-type Notification = {
-    id: string;
-    type: NotifType;
-    title: string;
-    body: string;
-    time: string;
-    read: boolean;
-    avatar?: string;
-    avatarColor?: string;
-};
-
-const TYPE_CONFIG: Record<NotifType, { icon: React.ElementType; color: string; bg: string }> = {
-    message: { icon: MessageSquare, color: "text-primary-400", bg: "bg-primary-500/10 border-primary-500/20" },
-    task: { icon: CheckSquare, color: "text-accent-400", bg: "bg-accent-400/10 border-accent-400/20" },
-    security: { icon: Shield, color: "text-red-400", bg: "bg-red-500/10 border-red-500/20" },
-    invite: { icon: UserPlus, color: "text-violet-400", bg: "bg-violet-500/10 border-violet-500/20" },
-    system: { icon: KeyRound, color: "text-yellow-400", bg: "bg-yellow-500/10 border-yellow-500/20" },
-};
-
-const INITIAL_NOTIFS: Notification[] = [
-    {
-        id: "1", type: "security", read: false,
-        title: "New device login detected",
-        body: "A new device (Windows PC · Edge 121) signed into your account from Pune, India. Not you? Revoke access immediately.",
-        time: "Just now",
-        avatar: "🔐",
-    },
-    {
-        id: "2", type: "message", read: false,
-        title: "Arjun Mehta mentioned you",
-        body: "@You can you check the auth service PR? I pushed the Argon2id implementation.",
-        time: "5 min ago",
-        avatar: "AM", avatarColor: "bg-primary-500",
-    },
-    {
-        id: "3", type: "task", read: false,
-        title: "Task assigned to you",
-        body: "Priya Sharma assigned \"Design workspace key rotation flow\" to you. Due Mar 8.",
-        time: "22 min ago",
-        avatar: "PS", avatarColor: "bg-violet-500",
-    },
-    {
-        id: "4", type: "invite", read: true,
-        title: "Rahul Nair joined the workspace",
-        body: "Rahul Nair accepted the invite and joined BuildFast HQ. Keys distributed automatically.",
-        time: "1 hour ago",
-        avatar: "RN", avatarColor: "bg-green-600",
-    },
-    {
-        id: "5", type: "system", read: true,
-        title: "Workspace key rotated",
-        body: "Admin triggered a key rotation. Your workspace encryption key has been renewed and re-encrypted for all members.",
-        time: "3 hours ago",
-    },
-    {
-        id: "6", type: "task", read: true,
-        title: "Task completed",
-        body: "Arjun Mehta marked \"User auth flow testing\" as Done.",
-        time: "Yesterday",
-        avatar: "AM", avatarColor: "bg-primary-500",
-    },
-    {
-        id: "7", type: "security", read: true,
-        title: "2FA verification successful",
-        body: "Two-factor authentication was verified from MacBook Pro. Everything looks good.",
-        time: "Yesterday",
-    },
-    {
-        id: "8", type: "message", read: true,
-        title: "New message in #engineering",
-        body: "Priya Sharma: The file vault encryption spec is ready. Check the doc in vault.",
-        time: "2 days ago",
-        avatar: "PS", avatarColor: "bg-violet-500",
-    },
-];
-
+type NotifType = "message" | "task" | "security" | "invite" | "system" | "mention" | "task_assigned";
 type FilterType = "all" | "unread" | NotifType;
 
+const TYPE_CFG: Record<string, { icon: React.ElementType; iconBg: string; iconColor: string }> = {
+    message: { icon: MessageSquare, iconBg: "#EEF2FF", iconColor: "#4F63FF" },
+    mention: { icon: MessageSquare, iconBg: "#EEF2FF", iconColor: "#4F63FF" },
+    task: { icon: CheckSquare, iconBg: "#F5F0E8", iconColor: "#D97706" },
+    task_assigned: { icon: CheckSquare, iconBg: "#F5F0E8", iconColor: "#D97706" },
+    security: { icon: Shield, iconBg: "#FFF1F2", iconColor: "#E11D48" },
+    invite: { icon: UserPlus, iconBg: "#F5F3FF", iconColor: "#7C3AED" },
+    system: { icon: KeyRound, iconBg: "#FFFBEB", iconColor: "#D97706" },
+};
+
+const SIDEBAR_FILTERS: [FilterType, string, React.ElementType][] = [
+    ["all", "All", Bell],
+    ["unread", "Unread", Bell],
+    ["message", "Messages", MessageSquare],
+    ["task", "Tasks", CheckSquare],
+    ["security", "Security", Shield],
+    ["invite", "Invites", UserPlus],
+    ["system", "System", KeyRound],
+];
+
 export default function NotificationsPage() {
-    const [notifs, setNotifs] = useState<Notification[]>(INITIAL_NOTIFS);
+    const { user } = useUser();
+    const { notifications, loading, markAsRead, clearAll } = useNotifications(user?.id);
     const [filter, setFilter] = useState<FilterType>("all");
 
-    const unreadCount = notifs.filter((n) => !n.read).length;
+    const unreadCount = notifications.filter(n => !n.is_read).length;
 
-    const markAllRead = () => setNotifs((p) => p.map((n) => ({ ...n, read: true })));
-    const markRead = (id: string) => setNotifs((p) => p.map((n) => n.id === id ? { ...n, read: true } : n));
-    const dismiss = (id: string) => setNotifs((p) => p.filter((n) => n.id !== id));
-
-    const filtered = notifs.filter((n) => {
+    const filtered = notifications.filter(n => {
         if (filter === "all") return true;
-        if (filter === "unread") return !n.read;
+        if (filter === "unread") return !n.is_read;
+        if (filter === "message") return n.type === "message" || n.type === "mention";
+        if (filter === "task") return n.type === "task" || n.type === "task_assigned";
         return n.type === filter;
     });
 
+    const dismiss = async (id: string) => {
+        // Optimistic UI handled via global hooks if possible, but for individual delete:
+        await supabase.from("notifications").delete().eq("id", id);
+        // Page reload or fetch should happen natively with realtime, but for now we rely on user action mapping.
+    };
+
     return (
-        <div className="h-full flex flex-col overflow-hidden">
+        <div style={{ height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-surface-border flex-shrink-0">
-                <div className="flex items-center gap-3">
-                    <h1 className="text-lg font-bold text-slate-100">Notifications</h1>
-                    {unreadCount > 0 && (
-                        <span className="badge-primary text-xs">{unreadCount} unread</span>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 24px", borderBottom: "1.5px solid #E8E4DC", background: "#fff", flexShrink: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <h1 style={{ fontSize: 17, fontWeight: 900, color: "#0D0D0D", fontFamily: "'Plus Jakarta Sans',sans-serif", letterSpacing: "-.02em" }}>Notifications</h1>
+                    {!loading && unreadCount > 0 && (
+                        <span style={{ fontSize: 11, fontWeight: 800, padding: "3px 9px", borderRadius: 999, background: "#AAEF45", color: "#0D0D0D" }}>{unreadCount} unread</span>
                     )}
                 </div>
-                <div className="flex items-center gap-2">
-                    <button onClick={markAllRead} className="btn-ghost text-xs gap-1.5">
-                        <CheckCheck size={13} />
-                        Mark all read
+                <div style={{ display: "flex", gap: 8 }}>
+                    <button onClick={clearAll}
+                        style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 9, border: "1.5px solid #E8E4DC", background: "#fff", fontSize: 12, fontWeight: 600, color: "#6B675E", cursor: "pointer" }}>
+                        <CheckCheck size={13} /> Clear all
                     </button>
-                    <button className="btn-ghost gap-1.5">
-                        <Settings size={15} />
-                        Preferences
+                    <button style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 9, border: "1.5px solid #E8E4DC", background: "#fff", fontSize: 12, fontWeight: 600, color: "#6B675E", cursor: "pointer" }}>
+                        <Settings size={13} /> Preferences
                     </button>
                 </div>
             </div>
 
-            <div className="flex flex-1 overflow-hidden">
-                {/* Filter sidebar */}
-                <div className="w-48 flex-shrink-0 border-r border-surface-border p-3 space-y-1">
-                    {([
-                        ["all", "All", Bell],
-                        ["unread", "Unread", Bell],
-                        ["message", "Messages", MessageSquare],
-                        ["task", "Tasks", CheckSquare],
-                        ["security", "Security", Shield],
-                        ["invite", "Invites", UserPlus],
-                        ["system", "System", KeyRound],
-                    ] as [FilterType, string, React.ElementType][]).map(([key, label, Icon]) => (
-                        <button
-                            key={key}
-                            onClick={() => setFilter(key)}
-                            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-all ${filter === key
-                                ? "bg-primary-500/15 text-primary-300 border border-primary-500/20"
-                                : "text-slate-400 hover:text-slate-200 hover:bg-surface-raised"
-                                }`}
-                        >
-                            <Icon size={15} />
-                            {label}
-                            {key === "unread" && unreadCount > 0 && (
-                                <span className="ml-auto text-xs bg-primary-500 text-white rounded-full w-4 h-4 flex items-center justify-center font-bold">
-                                    {unreadCount}
-                                </span>
-                            )}
-                        </button>
-                    ))}
+            <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
+
+                {/* Sidebar filter */}
+                <div style={{ width: 196, flexShrink: 0, borderRight: "1.5px solid #E8E4DC", background: "#fff", padding: "10px 8px", display: "flex", flexDirection: "column", gap: 2 }}>
+                    {SIDEBAR_FILTERS.map(([key, label, Icon]) => {
+                        const active = filter === key;
+                        const count = notifications.filter(n => {
+                            if (key === "unread") return !n.is_read;
+                            if (key === "message") return (n.type === "message" || n.type === "mention") && !n.is_read;
+                            if (key === "task") return (n.type === "task" || n.type === "task_assigned") && !n.is_read;
+                            return n.type === key && !n.is_read;
+                        }).length;
+
+                        return (
+                            <button key={key} onClick={() => setFilter(key)}
+                                style={{ width: "100%", display: "flex", alignItems: "center", gap: 9, padding: "9px 12px", borderRadius: 10, border: "none", cursor: "pointer", background: active ? "#0D0D0D" : "transparent", color: active ? "#AAEF45" : "#6B675E", fontWeight: active ? 700 : 500, fontSize: 13, fontFamily: "Inter,sans-serif", transition: "all .15s", textAlign: "left" }}
+                                onMouseEnter={e => { if (!active) (e.currentTarget as HTMLElement).style.background = "#F5F0E8"; }}
+                                onMouseLeave={e => { if (!active) (e.currentTarget as HTMLElement).style.background = "transparent"; }}>
+                                <Icon size={14} />
+                                <span style={{ flex: 1 }}>{label}</span>
+                                {key === "unread" && count > 0 && (
+                                    <span style={{ fontSize: 10, fontWeight: 900, width: 18, height: 18, borderRadius: "50%", background: "#AAEF45", color: "#0D0D0D", display: "flex", alignItems: "center", justifyContent: "center" }}>{count}</span>
+                                )}
+                            </button>
+                        );
+                    })}
                 </div>
 
                 {/* Notification list */}
-                <div className="flex-1 overflow-y-auto">
-                    {filtered.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center h-full gap-4">
-                            <div className="w-14 h-14 rounded-2xl bg-surface-raised border border-surface-border flex items-center justify-center">
-                                <Bell size={24} className="text-slate-500" />
+                <div style={{ flex: 1, overflowY: "auto" }}>
+                    {loading ? (
+                        <div style={{ display: "flex", justifyContent: "center", padding: 40 }}>
+                            <div style={{ width: 28, height: 28, borderRadius: "50%", border: "2px solid #E8E4DC", borderTopColor: "#0D0D0D", animation: "spin 1s linear infinite" }} />
+                        </div>
+                    ) : filtered.length === 0 ? (
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: 14, padding: 40 }}>
+                            <div style={{ width: 52, height: 52, borderRadius: 16, background: "#F5F0E8", border: "1.5px solid #E8E4DC", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                <Bell size={22} style={{ color: "#C8C4BC" }} />
                             </div>
-                            <p className="text-slate-500 text-sm">No notifications here</p>
+                            <p style={{ fontSize: 14, color: "#A8A49C" }}>No notifications here</p>
                         </div>
                     ) : (
-                        <div className="divide-y divide-surface-border">
-                            {filtered.map((n) => {
-                                const { icon: Icon, color, bg } = TYPE_CONFIG[n.type];
+                        <div>
+                            {filtered.map(n => {
+                                const { icon: Icon, iconBg, iconColor } = TYPE_CFG[n.type] || TYPE_CFG.system;
+                                const dateStr = new Date(n.created_at).toLocaleDateString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+
                                 return (
-                                    <div
-                                        key={n.id}
-                                        className={`flex items-start gap-4 px-6 py-4 hover:bg-surface-raised/50 transition-colors group cursor-pointer ${!n.read ? "bg-primary-500/3" : ""}`}
-                                        onClick={() => markRead(n.id)}
-                                    >
-                                        {/* Icon or avatar */}
-                                        <div className="relative flex-shrink-0">
-                                            {n.avatar && n.avatarColor ? (
-                                                <div className={`w-10 h-10 rounded-xl ${n.avatarColor} flex items-center justify-center text-sm font-bold text-white`}>
-                                                    {n.avatar[0]}
-                                                </div>
-                                            ) : (
-                                                <div className={`w-10 h-10 rounded-xl border flex items-center justify-center ${bg}`}>
-                                                    <Icon size={18} className={color} />
-                                                </div>
-                                            )}
-                                            {!n.read && (
-                                                <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-primary-500 border-2 border-dark" />
-                                            )}
-                                        </div>
+                                    <div key={n.id}
+                                        style={{ display: "flex", alignItems: "flex-start", gap: 14, padding: "14px 20px", borderBottom: "1px solid #F0EBE3", background: !n.is_read ? "#FDFDF9" : "transparent", transition: "background .15s", cursor: "pointer", position: "relative" }}
+                                        onClick={() => !n.is_read && markAsRead(n.id)}
+                                        onMouseEnter={e => {
+                                            (e.currentTarget as HTMLElement).style.background = "#FAFAF7";
+                                            const btn = e.currentTarget.querySelector(".dismiss-btn") as HTMLElement;
+                                            if (btn) { btn.style.opacity = "1"; btn.style.pointerEvents = "auto"; }
+                                        }}
+                                        onMouseLeave={e => {
+                                            (e.currentTarget as HTMLElement).style.background = !n.is_read ? "#FDFDF9" : "transparent";
+                                            const btn = e.currentTarget.querySelector(".dismiss-btn") as HTMLElement;
+                                            if (btn) { btn.style.opacity = "0"; btn.style.pointerEvents = "none"; }
+                                        }}>
 
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-start justify-between gap-2">
-                                                <p className={`text-sm font-semibold ${n.read ? "text-slate-300" : "text-slate-100"}`}>
-                                                    {n.title}
-                                                </p>
-                                                <span className="text-xs text-slate-500 flex-shrink-0">{n.time}</span>
+                                        {/* Icon / avatar */}
+                                        <div style={{ position: "relative", flexShrink: 0 }}>
+                                            <div style={{ width: 40, height: 40, borderRadius: 12, background: iconBg, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                                <Icon size={18} style={{ color: iconColor }} />
                                             </div>
-                                            <p className="text-xs text-slate-400 mt-0.5 leading-relaxed line-clamp-2">{n.body}</p>
-                                            {n.type === "security" && (
-                                                <div className="flex items-center gap-2 mt-2">
-                                                    <button className="btn-danger py-1 px-3 text-xs" onClick={(e) => e.stopPropagation()}>
-                                                        Revoke Device
-                                                    </button>
-                                                    <button className="btn-ghost text-xs py-1 px-3" onClick={(e) => e.stopPropagation()}>
-                                                        It was me
-                                                    </button>
-                                                </div>
-                                            )}
+                                            {!n.is_read && <div style={{ position: "absolute", top: -2, right: -2, width: 10, height: 10, borderRadius: "50%", background: "#AAEF45", border: "2px solid #fff" }} />}
                                         </div>
 
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); dismiss(n.id); }}
-                                            className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 text-slate-500 hover:text-slate-200 hover:bg-surface-border transition-all"
-                                            title="Dismiss"
-                                        >
-                                            <Trash2 size={13} />
+                                        {/* Content */}
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+                                                <p style={{ fontSize: 13, fontWeight: n.is_read ? 600 : 800, color: "#0D0D0D" }}>{n.title}</p>
+                                                <span style={{ fontSize: 11, color: "#A8A49C", flexShrink: 0 }}>{dateStr}</span>
+                                            </div>
+                                            <p style={{ fontSize: 12, color: "#6B675E", marginTop: 3, lineHeight: 1.55 }}>{n.body}</p>
+                                        </div>
+
+                                        {/* Dismiss */}
+                                        <button className="dismiss-btn" onClick={async (e) => { e.stopPropagation(); await dismiss(n.id); window.location.reload(); }}
+                                            style={{ opacity: 0, pointerEvents: "none", position: "absolute", right: 20, top: "50%", transform: "translateY(-50%)", padding: 6, borderRadius: 8, border: "none", background: "#fff", boxShadow: "0 2px 8px rgba(0,0,0,0.08)", cursor: "pointer", color: "#DC2626", transition: "all .15s", flexShrink: 0 }}
+                                            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#FEE2E2"; }}
+                                            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "#fff"; }}
+                                            title="Delete">
+                                            <Trash2 size={14} />
                                         </button>
                                     </div>
                                 );

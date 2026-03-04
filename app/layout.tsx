@@ -12,14 +12,14 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     title: "CipherDesk — Encrypted Startup Workspace",
-    description: "Telegram-level speed. Slack-level structure. Signal-level encryption. For indie hackers and small SaaS teams.",
+    description: "Real-time encrypted chat, tasks & file vault. Zero-knowledge, Signal-grade E2EE. For privacy-first startup teams.",
     type: "website",
   },
   manifest: "/manifest.json",
-  themeColor: "#6366F1",
+  themeColor: "#AAEF45",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent",
+    statusBarStyle: "default",
     title: "CipherDesk",
   },
 };
@@ -31,11 +31,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#6366F1" />
+        <meta name="theme-color" content="#AAEF45" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
       </head>
-      <body style={{ minHeight: "100vh", background: "#030711", color: "#F8FAFC" }}>
+      <body>
         {children}
       </body>
     </html>

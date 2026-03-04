@@ -2,302 +2,190 @@
 
 import { useState } from "react";
 import {
-    Plus,
-    Lock,
-    List,
-    Columns,
-    Filter,
-    Search,
-    ChevronDown,
-    Circle,
-    Clock,
-    CheckCircle,
-    AlertCircle,
-    MoreHorizontal,
-    Calendar,
-    User,
-    Tag,
-    ArrowUpDown,
-    Sparkles,
-    MessageSquare,
+    Plus, Lock, List, Columns, Filter, Search,
+    Circle, Clock, CheckCircle, MoreHorizontal, Calendar, MessageSquare, Trash2
 } from "lucide-react";
+import { useTasks, useUser, type Task } from "@/lib/hooks";
 
 type Priority = "high" | "medium" | "low";
-type Status = "todo" | "in-progress" | "done";
+type Status = "todo" | "in_progress" | "done";
 
-type Task = {
-    id: string;
-    title: string;
-    desc: string;
-    assignee: string;
-    assigneeAvatar: string;
-    assigneeColor: string;
-    dueDate: string;
-    priority: Priority;
-    status: Status;
-    tags: string[];
-    fromMessage?: boolean;
+const P_STYLE: Record<Priority, { label: string; bg: string; color: string; dot: string }> = {
+    high: { label: "High", bg: "#FEE2E2", color: "#991B1B", dot: "#EF4444" },
+    medium: { label: "Medium", bg: "#FEF9C3", color: "#854D0E", dot: "#F59E0B" },
+    low: { label: "Low", bg: "#F3F4F6", color: "#4B5563", dot: "#9CA3AF" },
 };
 
-const PRIORITY_CONFIG: Record<Priority, { label: string; className: string; dot: string }> = {
-    high: { label: "High", className: "badge-danger", dot: "bg-red-400" },
-    medium: { label: "Medium", className: "badge-warning", dot: "bg-yellow-400" },
-    low: { label: "Low", className: "badge-ghost", dot: "bg-slate-400" },
+const S_STYLE: Record<Status, { label: string; Icon: React.ElementType; color: string }> = {
+    "todo": { label: "To Do", Icon: Circle, color: "#A8A49C" },
+    "in_progress": { label: "In Progress", Icon: Clock, color: "#4F63FF" },
+    "done": { label: "Done", Icon: CheckCircle, color: "#22C55E" },
 };
 
-const STATUS_CONFIG: Record<Status, { label: string; icon: React.ElementType; color: string }> = {
-    "todo": { label: "To Do", icon: Circle, color: "text-slate-400" },
-    "in-progress": { label: "In Progress", icon: Clock, color: "text-primary-400" },
-    "done": { label: "Done", icon: CheckCircle, color: "text-green-400" },
+const COL_DOT: Record<Status, string> = {
+    "todo": "#A8A49C",
+    "in_progress": "#4F63FF",
+    "done": "#22C55E",
 };
 
-const INITIAL_TASKS: Task[] = [
-    {
-        id: "1",
-        title: "Implement Argon2id password hashing",
-        desc: "Replace bcrypt with Argon2id for all password operations. Update auth service.",
-        assignee: "Arjun M.",
-        assigneeAvatar: "AM",
-        assigneeColor: "bg-primary-500",
-        dueDate: "Mar 5",
-        priority: "high",
-        status: "in-progress",
-        tags: ["security", "auth"],
-        fromMessage: true,
-    },
-    {
-        id: "2",
-        title: "Fix staging deployment regression",
-        desc: "Environment variables not loading correctly. Build fails on healthcheck.",
-        assignee: "Priya S.",
-        assigneeAvatar: "PS",
-        assigneeColor: "bg-violet-500",
-        dueDate: "Mar 4",
-        priority: "high",
-        status: "todo",
-        tags: ["devops", "bug"],
-        fromMessage: true,
-    },
-    {
-        id: "3",
-        title: "Design workspace key rotation flow",
-        desc: "Document and implement key rotation when a member is removed from the workspace.",
-        assignee: "You",
-        assigneeAvatar: "Y",
-        assigneeColor: "bg-accent-500",
-        dueDate: "Mar 8",
-        priority: "medium",
-        status: "todo",
-        tags: ["cryptography", "design"],
-    },
-    {
-        id: "4",
-        title: "Build Kanban board component",
-        desc: "Implement drag-and-drop Kanban with encrypted task cards.",
-        assignee: "Priya S.",
-        assigneeAvatar: "PS",
-        assigneeColor: "bg-violet-500",
-        dueDate: "Mar 10",
-        priority: "medium",
-        status: "in-progress",
-        tags: ["frontend"],
-    },
-    {
-        id: "5",
-        title: "Setup WebSocket server",
-        desc: "Real-time message delivery via WebSocket. Include reconnection logic.",
-        assignee: "Arjun M.",
-        assigneeAvatar: "AM",
-        assigneeColor: "bg-primary-500",
-        dueDate: "Mar 7",
-        priority: "high",
-        status: "in-progress",
-        tags: ["backend", "realtime"],
-    },
-    {
-        id: "6",
-        title: "Landing page copy review",
-        desc: "Final review and proofreading of all landing page copy.",
-        assignee: "Rahul N.",
-        assigneeAvatar: "RN",
-        assigneeColor: "bg-green-600",
-        dueDate: "Mar 3",
-        priority: "low",
-        status: "done",
-        tags: ["marketing"],
-    },
-    {
-        id: "7",
-        title: "User auth flow testing",
-        desc: "E2E tests for registration, login, 2FA, and device approval flows.",
-        assignee: "You",
-        assigneeAvatar: "Y",
-        assigneeColor: "bg-accent-500",
-        dueDate: "Mar 6",
-        priority: "medium",
-        status: "done",
-        tags: ["testing", "auth"],
-    },
+const COLUMNS: { status: Status; label: string }[] = [
+    { status: "todo", label: "To Do" },
+    { status: "in_progress", label: "In Progress" },
+    { status: "done", label: "Done" },
 ];
 
-function TaskCard({ task, onStatusChange }: { task: Task; onStatusChange: (id: string, status: Status) => void }) {
-    const priority = PRIORITY_CONFIG[task.priority];
-    const status = STATUS_CONFIG[task.status];
+function PBadge({ p }: { p: Priority }) {
+    const s = P_STYLE[p];
+    return <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: s.bg, color: s.color }}>{s.label}</span>;
+}
+
+function getAvatarBg(id: string) {
+    const colors = ["#4F63FF", "#9333EA", "#2E7D32", "#D97706", "#DC2626", "#0891B2"];
+    let hash = 0;
+    for (let i = 0; i < id.length; i++) hash = id.charCodeAt(i) + ((hash << 5) - hash);
+    return colors[Math.abs(hash) % colors.length];
+}
+
+function TaskCard({ task, onStatusChange, onDelete }: { task: Task; onStatusChange: (id: string, s: Status) => void; onDelete: (id: string) => void; }) {
+    const [hov, setHov] = useState(false);
+
+    const displayName = task.assignee?.full_name || task.assignee?.email || "Unassigned";
+    const initials = task.assignee ? (task.assignee.full_name ? task.assignee.full_name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2) : task.assignee.email.slice(0, 2).toUpperCase()) : "?";
+    const avatarBg = task.assignee_id ? getAvatarBg(task.assignee_id) : "#E8E4DC";
 
     return (
-        <div className="bg-dark rounded-xl border border-surface-border p-4 hover:border-primary-500/30 hover:-translate-y-0.5 transition-all duration-200 cursor-pointer group">
+        <div onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
+            style={{
+                background: "#fff", borderRadius: 14, border: `1.5px solid ${hov ? "#AAEF45" : "#E8E4DC"}`,
+                padding: 14, cursor: "pointer", transform: hov ? "translateY(-2px)" : "none",
+                transition: "all .2s", boxShadow: hov ? "0 4px 16px rgba(0,0,0,.08)" : "0 1px 4px rgba(0,0,0,.04)",
+                position: "relative"
+            }}>
+
             {/* Top row */}
-            <div className="flex items-start justify-between gap-2 mb-3">
-                <div className="flex items-center gap-2 flex-wrap">
-                    <span className={priority.className}>{priority.label}</span>
-                    {task.fromMessage && (
-                        <span className="badge-accent text-xs gap-1">
-                            <MessageSquare size={9} />
-                            From chat
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                    <PBadge p={task.priority} />
+                </div>
+                <div style={{ display: "flex", gap: 4, opacity: hov ? 1 : 0, transition: "opacity .15s" }}>
+                    <button onClick={(e) => { e.stopPropagation(); onDelete(task.id); }} style={{ border: "none", background: "none", cursor: "pointer", color: "#EF4444", padding: 2 }}>
+                        <Trash2 size={13} />
+                    </button>
+                    <button style={{ border: "none", background: "none", cursor: "pointer", color: "#C8C4BC", padding: 2 }}>
+                        <MoreHorizontal size={15} />
+                    </button>
+                </div>
+            </div>
+
+            <h3 style={{ fontSize: 13, fontWeight: 700, color: "#0D0D0D", marginBottom: 4, lineHeight: 1.4 }}>{task.title}</h3>
+            {task.description && (
+                <p style={{ fontSize: 12, color: "#A8A49C", lineHeight: 1.5, marginBottom: 10, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{task.description}</p>
+            )}
+
+            {/* Bottom */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <div style={{ width: 20, height: 20, borderRadius: 6, background: avatarBg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 800, color: "#fff" }}>
+                        {initials}
+                    </div>
+                    <span style={{ fontSize: 11, color: "#6B675E", maxWidth: 80, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{displayName}</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    {task.due_date && (
+                        <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "#A8A49C" }}>
+                            <Calendar size={10} /> {new Date(task.due_date).toLocaleDateString([], { month: "short", day: "numeric" })}
                         </span>
                     )}
-                </div>
-                <button className="p-1 rounded-lg opacity-0 group-hover:opacity-100 text-slate-500 hover:text-slate-200 hover:bg-surface-raised transition-all">
-                    <MoreHorizontal size={15} />
-                </button>
-            </div>
-
-            <h3 className="text-sm font-semibold text-slate-200 mb-1.5 leading-snug">{task.title}</h3>
-            <p className="text-xs text-slate-500 leading-relaxed mb-3 line-clamp-2">{task.desc}</p>
-
-            {/* Tags */}
-            <div className="flex flex-wrap gap-1.5 mb-3">
-                {task.tags.map((tag) => (
-                    <span key={tag} className="text-xs font-mono text-slate-500 bg-surface-raised border border-surface-border px-2 py-0.5 rounded-md">
-                        #{tag}
-                    </span>
-                ))}
-            </div>
-
-            {/* Bottom row */}
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                    <div className={`w-5 h-5 rounded-full ${task.assigneeColor} flex items-center justify-center text-[9px] font-bold text-white`}>
-                        {task.assigneeAvatar[0]}
-                    </div>
-                    <span className="text-xs text-slate-400">{task.assignee}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1 text-xs text-slate-500">
-                        <Calendar size={11} />
-                        {task.dueDate}
-                    </div>
-                    <Lock size={10} className="text-accent-400/40" />
+                    <Lock size={9} style={{ color: "#C8C4BC" }} />
                 </div>
             </div>
         </div>
     );
 }
 
-const COLUMNS: { status: Status; label: string }[] = [
-    { status: "todo", label: "To Do" },
-    { status: "in-progress", label: "In Progress" },
-    { status: "done", label: "Done" },
-];
-
-const COLUMN_COLORS: Record<Status, string> = {
-    "todo": "bg-slate-400",
-    "in-progress": "bg-primary-400",
-    "done": "bg-green-400",
-};
-
 export default function TasksPage() {
-    const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS);
+    const { user } = useUser();
+    const { tasks, loading, createTask, updateTask, deleteTask } = useTasks();
+
     const [view, setView] = useState<"kanban" | "list">("kanban");
     const [search, setSearch] = useState("");
+    const [isCreating, setIsCreating] = useState(false);
+    const [newTitle, setNewTitle] = useState("");
 
-    const updateStatus = (id: string, status: Status) => {
-        setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, status } : t)));
+    const handleCreate = async () => {
+        if (!newTitle.trim() || !user) return;
+        setIsCreating(true);
+        await createTask({ title: newTitle.trim(), status: "todo", priority: "medium" }, user.id);
+        setNewTitle("");
+        setIsCreating(false);
     };
 
-    const filtered = tasks.filter((t) =>
-        t.title.toLowerCase().includes(search.toLowerCase())
-    );
+    const updateStatus = (id: string, status: Status) => updateTask(id, { status });
+
+    const filtered = tasks.filter(t => t.title.toLowerCase().includes(search.toLowerCase()));
 
     return (
-        <div className="h-full flex flex-col overflow-hidden">
-            {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-surface-border flex-shrink-0">
-                <div className="flex items-center gap-3">
-                    <h1 className="text-lg font-bold text-slate-100">Tasks</h1>
-                    <span className="badge-accent">
-                        <Lock size={10} />
-                        Encrypted
+        <div style={{ height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+
+            {/* ── Header ── */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 24px", borderBottom: "1.5px solid #E8E4DC", background: "#fff", flexShrink: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <h1 style={{ fontSize: 17, fontWeight: 900, color: "#0D0D0D", fontFamily: "'Plus Jakarta Sans',sans-serif", letterSpacing: "-.02em" }}>Tasks</h1>
+                    <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 999, background: "#F0FDF4", color: "#166534", border: "1px solid #BBF7D0", display: "flex", alignItems: "center", gap: 4 }}>
+                        <Lock size={9} /> Encrypted
                     </span>
-                    <span className="text-xs text-slate-500">{tasks.length} total</span>
+                    {!loading && <span style={{ fontSize: 12, color: "#A8A49C" }}>{tasks.length} tasks</span>}
                 </div>
-                <div className="flex items-center gap-2">
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     {/* View toggle */}
-                    <div className="flex items-center bg-surface-raised border border-surface-border rounded-lg p-0.5">
-                        <button
-                            onClick={() => setView("kanban")}
-                            className={`p-1.5 rounded-md transition-all ${view === "kanban" ? "bg-primary-500/20 text-primary-400" : "text-slate-500 hover:text-slate-300"}`}
-                        >
-                            <Columns size={15} />
-                        </button>
-                        <button
-                            onClick={() => setView("list")}
-                            className={`p-1.5 rounded-md transition-all ${view === "list" ? "bg-primary-500/20 text-primary-400" : "text-slate-500 hover:text-slate-300"}`}
-                        >
-                            <List size={15} />
-                        </button>
+                    <div style={{ display: "flex", borderRadius: 10, overflow: "hidden", border: "1.5px solid #E8E4DC", background: "#F5F0E8" }}>
+                        {([["kanban", Columns], ["list", List]] as const).map(([v, Icon]) => (
+                            <button key={v} onClick={() => setView(v)}
+                                style={{ width: 34, height: 34, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", background: view === v ? "#0D0D0D" : "transparent", color: view === v ? "#fff" : "#A8A49C", transition: "all .15s" }}>
+                                <Icon size={15} />
+                            </button>
+                        ))}
                     </div>
 
-                    <div className="relative">
-                        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-                        <input
-                            className="input-field pl-9 py-2 text-sm w-48"
-                            placeholder="Search tasks..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                        />
+                    {/* Search */}
+                    <div style={{ position: "relative" }}>
+                        <Search size={13} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#A8A49C" }} />
+                        <input className="input-field" style={{ paddingLeft: 32, paddingTop: 8, paddingBottom: 8, fontSize: 13, width: 190, margin: 0 }} placeholder="Search tasks…" value={search} onChange={e => setSearch(e.target.value)} />
                     </div>
 
-                    <button className="btn-ghost gap-1.5">
-                        <Filter size={14} />
-                        Filter
-                    </button>
-
-                    <button className="btn-primary gap-1.5">
-                        <Plus size={15} />
-                        New Task
-                    </button>
+                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        <input className="input-field" style={{ paddingTop: 8, paddingBottom: 8, fontSize: 13, width: 220, margin: 0 }} placeholder="Quick add task…" value={newTitle} onChange={e => setNewTitle(e.target.value)} onKeyDown={e => e.key === "Enter" && handleCreate()} />
+                        <button className="btn-primary" style={{ padding: "8px 16px" }} onClick={handleCreate} disabled={!newTitle.trim() || isCreating || !user}>
+                            <Plus size={14} /> Add
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            {/* Content */}
-            <div className="flex-1 overflow-auto p-6">
-                {view === "kanban" ? (
-                    <div className="flex gap-5 h-full min-w-max">
-                        {COLUMNS.map((col) => {
-                            const colTasks = filtered.filter((t) => t.status === col.status);
+            {/* ── Content ── */}
+            <div style={{ flex: 1, overflow: "auto", padding: 24 }}>
+                {loading ? (
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
+                        <div style={{ width: 32, height: 32, borderRadius: "50%", border: "3px solid #E8E4DC", borderTopColor: "#0D0D0D", animation: "spin 1s linear infinite" }} />
+                    </div>
+                ) : view === "kanban" ? (
+                    <div style={{ display: "flex", gap: 20, height: "100%", minWidth: "max-content" }}>
+                        {COLUMNS.map(col => {
+                            const colTasks = filtered.filter(t => t.status === col.status);
                             return (
-                                <div key={col.status} className="w-80 flex-shrink-0 flex flex-col">
+                                <div key={col.status} style={{ width: 300, flexShrink: 0, display: "flex", flexDirection: "column" }}>
                                     {/* Column header */}
-                                    <div className="flex items-center gap-2 mb-4">
-                                        <div className={`w-2 h-2 rounded-full ${COLUMN_COLORS[col.status]}`} />
-                                        <span className="text-sm font-bold text-slate-300">{col.label}</span>
-                                        <span className="ml-1 text-xs bg-surface-raised border border-surface-border text-slate-400 rounded-md px-2 py-0.5 font-mono">
-                                            {colTasks.length}
-                                        </span>
-                                        <button className="ml-auto p-1 rounded-lg text-slate-600 hover:text-slate-300 hover:bg-surface-raised transition-all">
-                                            <Plus size={13} />
-                                        </button>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14, padding: "0 4px" }}>
+                                        <div style={{ width: 8, height: 8, borderRadius: "50%", background: COL_DOT[col.status] }} />
+                                        <span style={{ fontSize: 13, fontWeight: 800, color: "#0D0D0D", fontFamily: "'Plus Jakarta Sans',sans-serif" }}>{col.label}</span>
+                                        <span style={{ fontSize: 11, fontFamily: "monospace", fontWeight: 700, color: "#6B675E", background: "#F5F0E8", padding: "1px 7px", borderRadius: 5 }}>{colTasks.length}</span>
                                     </div>
 
-                                    {/* Cards */}
-                                    <div className="flex-1 space-y-3 overflow-y-auto pr-1">
-                                        {colTasks.map((task) => (
-                                            <TaskCard key={task.id} task={task} onStatusChange={updateStatus} />
-                                        ))}
+                                    <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 10, overflowY: "auto", paddingBottom: 40 }}>
+                                        {colTasks.map(task => <TaskCard key={task.id} task={task} onStatusChange={updateStatus} onDelete={deleteTask} />)}
                                         {colTasks.length === 0 && (
-                                            <div className="h-24 border-2 border-dashed border-surface-border rounded-xl flex items-center justify-center">
-                                                <span className="text-xs text-slate-600">Drop tasks here</span>
+                                            <div style={{ height: 80, border: "2px dashed #E8E4DC", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                                <span style={{ fontSize: 12, color: "#C8C4BC" }}>Empty</span>
                                             </div>
                                         )}
                                     </div>
@@ -306,55 +194,59 @@ export default function TasksPage() {
                         })}
                     </div>
                 ) : (
-                    // List view
-                    <div className="max-w-4xl">
-                        <div className="bg-surface-DEFAULT rounded-2xl border border-surface-border overflow-hidden">
-                            <div className="grid grid-cols-12 px-4 py-2.5 border-b border-surface-border text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                                <span className="col-span-5">Task</span>
-                                <span className="col-span-2">Status</span>
-                                <span className="col-span-2">Priority</span>
-                                <span className="col-span-2">Assignee</span>
-                                <span className="col-span-1">Due</span>
+                    /* List view */
+                    <div style={{ maxWidth: 860 }}>
+                        <div style={{ background: "#fff", borderRadius: 16, border: "1.5px solid #E8E4DC", overflow: "hidden" }}>
+                            {/* Table header */}
+                            <div style={{ display: "grid", gridTemplateColumns: "5fr 2fr 2fr 2fr 1fr", padding: "10px 16px", borderBottom: "1.5px solid #E8E4DC", background: "#F5F0E8" }}>
+                                {["Task", "Status", "Priority", "Assignee", "Due"].map(h => (
+                                    <span key={h} style={{ fontSize: 11, fontWeight: 700, color: "#6B675E", textTransform: "uppercase", letterSpacing: ".06em" }}>{h}</span>
+                                ))}
                             </div>
+
+                            {filtered.length === 0 && (
+                                <div style={{ padding: 30, textAlign: "center", color: "#A8A49C", fontSize: 13 }}>No tasks found.</div>
+                            )}
+
                             {filtered.map((task, i) => {
-                                const StatusIcon = STATUS_CONFIG[task.status].icon;
+                                const { Icon: StatusIcon, color } = S_STYLE[task.status];
+                                const displayName = task.assignee?.full_name || task.assignee?.email || "Unassigned";
+                                const initials = task.assignee ? (task.assignee.full_name ? task.assignee.full_name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2) : task.assignee.email.slice(0, 2).toUpperCase()) : "?";
+                                const avatarBg = task.assignee_id ? getAvatarBg(task.assignee_id) : "#E8E4DC";
+
                                 return (
-                                    <div
-                                        key={task.id}
-                                        className={`grid grid-cols-12 items-center px-4 py-3 hover:bg-surface-raised transition-colors cursor-pointer ${i < filtered.length - 1 ? "border-b border-surface-border" : ""
-                                            }`}
-                                    >
-                                        <div className="col-span-5 flex items-center gap-2.5">
-                                            <StatusIcon size={15} className={STATUS_CONFIG[task.status].color} />
-                                            <span className={`text-sm font-medium ${task.status === "done" ? "line-through text-slate-500" : "text-slate-200"}`}>
+                                    <div key={task.id} style={{ display: "grid", gridTemplateColumns: "5fr 2fr 2fr 2fr 1fr", alignItems: "center", padding: "12px 16px", borderBottom: i < filtered.length - 1 ? "1px solid #F0EBE3" : "none", cursor: "pointer", transition: "background .15s" }}
+                                        onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "#FAFAF7"}
+                                        onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "transparent"}>
+
+                                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                            <StatusIcon size={14} style={{ color, flexShrink: 0 }} />
+                                            <span style={{ fontSize: 13, fontWeight: 600, color: task.status === "done" ? "#A8A49C" : "#0D0D0D", textDecoration: task.status === "done" ? "line-through" : "none" }}>
                                                 {task.title}
                                             </span>
-                                            {task.fromMessage && <MessageSquare size={12} className="text-accent-400/50" />}
-                                            <Lock size={10} className="text-accent-400/30 ml-auto" />
                                         </div>
-                                        <div className="col-span-2">
-                                            <select
-                                                className="text-xs bg-transparent border-none text-slate-400 outline-none cursor-pointer"
-                                                value={task.status}
-                                                onChange={(e) => updateStatus(task.id, e.target.value as Status)}
-                                            >
+
+                                        <div>
+                                            <select style={{ fontSize: 12, background: "transparent", border: "none", outline: "none", cursor: "pointer", color: "#6B675E", fontFamily: "Inter,sans-serif" }}
+                                                value={task.status} onChange={e => updateStatus(task.id, e.target.value as Status)}>
                                                 <option value="todo">To Do</option>
-                                                <option value="in-progress">In Progress</option>
+                                                <option value="in_progress">In Progress</option>
                                                 <option value="done">Done</option>
                                             </select>
                                         </div>
-                                        <div className="col-span-2">
-                                            <span className={PRIORITY_CONFIG[task.priority].className}>
-                                                {PRIORITY_CONFIG[task.priority].label}
-                                            </span>
-                                        </div>
-                                        <div className="col-span-2 flex items-center gap-1.5">
-                                            <div className={`w-5 h-5 rounded-full ${task.assigneeColor} flex items-center justify-center text-[9px] font-bold text-white`}>
-                                                {task.assigneeAvatar[0]}
+
+                                        <div><PBadge p={task.priority} /></div>
+
+                                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                            <div style={{ width: 20, height: 20, borderRadius: 6, background: avatarBg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 800, color: "#fff" }}>
+                                                {initials}
                                             </div>
-                                            <span className="text-xs text-slate-400">{task.assignee}</span>
+                                            <span style={{ fontSize: 12, color: "#6B675E", maxWidth: 80, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{displayName}</span>
                                         </div>
-                                        <div className="col-span-1 text-xs text-slate-500">{task.dueDate}</div>
+
+                                        <span style={{ fontSize: 12, color: "#A8A49C" }}>
+                                            {task.due_date ? new Date(task.due_date).toLocaleDateString([], { month: "short", day: "numeric" }) : "—"}
+                                        </span>
                                     </div>
                                 );
                             })}

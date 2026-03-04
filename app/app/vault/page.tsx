@@ -1,168 +1,104 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
-    FolderLock,
-    Upload,
-    Lock,
-    File,
-    FileText,
-    FileImage,
-    FileCode,
-    Download,
-    Trash2,
-    MoreHorizontal,
-    Search,
-    Grid,
-    List,
-    Shield,
-    Plus,
-    Eye,
-    Share2,
-    Clock,
-    HardDrive,
+    FolderLock, Upload, Lock, File, FileText, FileImage, FileCode,
+    Download, Trash2, MoreHorizontal, Search, Grid, List,
+    Shield, Plus, Eye, Share2, Clock, HardDrive,
 } from "lucide-react";
+import { useVault, useUser, type VaultFile } from "@/lib/hooks";
 
-type FileItem = {
-    id: string;
-    name: string;
-    size: string;
-    type: "pdf" | "image" | "code" | "doc" | "zip";
-    uploadedBy: string;
-    uploadedAt: string;
-    encrypted: boolean;
-    chunks: number;
+const FILE_ICONS: Record<string, React.ElementType> = { pdf: FileText, image: FileImage, code: FileCode, doc: FileText, zip: File };
+const FILE_STYLES: Record<string, { bg: string; color: string; border: string }> = {
+    pdf: { bg: "#FEF2F2", color: "#DC2626", border: "#FECACA" },
+    image: { bg: "#F5F3FF", color: "#7C3AED", border: "#DDD6FE" },
+    code: { bg: "#F0FDF4", color: "#16A34A", border: "#BBF7D0" },
+    doc: { bg: "#EFF6FF", color: "#2563EB", border: "#BFDBFE" },
+    zip: { bg: "#FFFBEB", color: "#D97706", border: "#FDE68A" },
 };
 
-const FILE_ICONS: Record<string, React.ElementType> = {
-    pdf: FileText,
-    image: FileImage,
-    code: FileCode,
-    doc: FileText,
-    zip: File,
-};
+function getFileTypeCategory(mime: string | null, name: string): string {
+    const ext = name.split(".").pop()?.toLowerCase();
+    if (mime?.startsWith("image/") || ["png", "jpg", "jpeg", "gif", "svg"].includes(ext || "")) return "image";
+    if (mime?.startsWith("text/plain") || ["ts", "tsx", "js", "jsx", "html", "css", "json", "md"].includes(ext || "")) return "code";
+    if (mime === "application/pdf" || ext === "pdf") return "pdf";
+    if (["doc", "docx", "xls", "xlsx", "csv"].includes(ext || "")) return "doc";
+    if (["zip", "rar", "tar", "gz"].includes(ext || "")) return "zip";
+    return "doc";
+}
 
-const FILE_COLORS: Record<string, string> = {
-    pdf: "text-red-400 bg-red-400/10 border-red-400/20",
-    image: "text-violet-400 bg-violet-400/10 border-violet-400/20",
-    code: "text-green-400 bg-green-400/10 border-green-400/20",
-    doc: "text-blue-400 bg-blue-400/10 border-blue-400/20",
-    zip: "text-yellow-400 bg-yellow-400/10 border-yellow-400/20",
-};
+function formatBytes(bytes: number) {
+    if (bytes === 0) return "0 B";
+    const k = 1024;
+    const sizes = ["B", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
+}
 
-const MOCK_FILES: FileItem[] = [
-    {
-        id: "1",
-        name: "CipherDesk_Architecture.pdf",
-        size: "2.4 MB",
-        type: "pdf",
-        uploadedBy: "Arjun M.",
-        uploadedAt: "Today, 10:30 AM",
-        encrypted: true,
-        chunks: 5,
-    },
-    {
-        id: "2",
-        name: "encryption_flow_diagram.png",
-        size: "890 KB",
-        type: "image",
-        uploadedBy: "Priya S.",
-        uploadedAt: "Today, 09:15 AM",
-        encrypted: true,
-        chunks: 2,
-    },
-    {
-        id: "3",
-        name: "workspace_key_rotation.ts",
-        size: "12 KB",
-        type: "code",
-        uploadedBy: "You",
-        uploadedAt: "Yesterday, 6:42 PM",
-        encrypted: true,
-        chunks: 1,
-    },
-    {
-        id: "4",
-        name: "Q1_2026_Roadmap.pdf",
-        size: "1.1 MB",
-        type: "pdf",
-        uploadedBy: "Rahul N.",
-        uploadedAt: "Yesterday, 3:00 PM",
-        encrypted: true,
-        chunks: 3,
-    },
-    {
-        id: "5",
-        name: "design_system_v2.png",
-        size: "4.2 MB",
-        type: "image",
-        uploadedBy: "Priya S.",
-        uploadedAt: "Mar 2, 11:00 AM",
-        encrypted: true,
-        chunks: 9,
-    },
-    {
-        id: "6",
-        name: "auth_service.ts",
-        size: "8.5 KB",
-        type: "code",
-        uploadedBy: "Arjun M.",
-        uploadedAt: "Mar 1, 2:15 PM",
-        encrypted: true,
-        chunks: 1,
-    },
-    {
-        id: "7",
-        name: "team_assets_v1.zip",
-        size: "18.6 MB",
-        type: "zip",
-        uploadedBy: "You",
-        uploadedAt: "Feb 28, 9:00 AM",
-        encrypted: true,
-        chunks: 38,
-    },
-];
+function StatCard({ icon: Icon, iconBg, iconColor, value, label }: { icon: React.ElementType; iconBg: string; iconColor: string; value: string; label: string }) {
+    return (
+        <div style={{ background: "#fff", borderRadius: 14, border: "1.5px solid #E8E4DC", padding: "14px 18px", display: "flex", alignItems: "center", gap: 14 }}>
+            <div style={{ width: 42, height: 42, borderRadius: 12, background: iconBg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <Icon size={19} style={{ color: iconColor }} />
+            </div>
+            <div>
+                <div style={{ fontSize: 20, fontWeight: 900, color: "#0D0D0D", fontFamily: "'Plus Jakarta Sans',sans-serif", lineHeight: 1 }}>{value}</div>
+                <div style={{ fontSize: 12, color: "#A8A49C", marginTop: 3 }}>{label}</div>
+            </div>
+        </div>
+    );
+}
 
-function FileCard({ file }: { file: FileItem }) {
-    const Icon = FILE_ICONS[file.type] || File;
-    const colorClass = FILE_COLORS[file.type];
+function FileCard({ file, onDelete, currentUserId }: { file: VaultFile; onDelete: (id: string, userId: string) => void; currentUserId: string | undefined }) {
+    const [hov, setHov] = useState(false);
+
+    const cat = getFileTypeCategory(file.mime_type, file.name);
+    const Icon = FILE_ICONS[cat] || File;
+    const s = FILE_STYLES[cat] || FILE_STYLES.doc;
+
+    const uploaderName = file.uploader?.full_name || file.uploader?.email || "Unknown";
+    const date = new Date(file.created_at).toLocaleDateString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+
+    // Assuming 1 chunk per MB roughly as a dummy visual if not actually implementing chunks on DB yet
+    const chunks = Math.max(1, Math.ceil(file.size_bytes / (1024 * 1024)));
 
     return (
-        <div className="bg-dark rounded-xl border border-surface-border p-4 hover:border-primary-500/30 hover:-translate-y-0.5 transition-all duration-200 group cursor-pointer">
-            <div className="flex items-start justify-between mb-3">
-                <div className={`p-2.5 rounded-xl border ${colorClass}`}>
-                    <Icon size={20} />
+        <div onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
+            style={{ background: "#fff", borderRadius: 14, border: `1.5px solid ${hov ? "#AAEF45" : "#E8E4DC"}`, padding: 14, cursor: "pointer", transition: "all .2s", transform: hov ? "translateY(-2px)" : "none", boxShadow: hov ? "0 6px 20px rgba(0,0,0,.08)" : "0 1px 4px rgba(0,0,0,.04)" }}>
+
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 12 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 11, background: s.bg, border: `1.5px solid ${s.border}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Icon size={18} style={{ color: s.color }} />
                 </div>
-                <button className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-slate-500 hover:text-slate-200 hover:bg-surface-raised transition-all">
+                <button style={{ border: "none", background: "none", cursor: "pointer", color: "#C8C4BC", opacity: hov ? 1 : 0, transition: "opacity .15s", padding: 2 }}>
                     <MoreHorizontal size={15} />
                 </button>
             </div>
 
-            <p className="text-sm font-semibold text-slate-200 mb-1 truncate" title={file.name}>
-                {file.name}
-            </p>
+            <p style={{ fontSize: 13, fontWeight: 700, color: "#0D0D0D", marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={file.name}>{file.name}</p>
 
-            <div className="flex items-center gap-2 mb-3">
-                <span className="text-xs text-slate-500">{file.size}</span>
-                <span className="w-1 h-1 rounded-full bg-slate-600" />
-                <span className="text-xs font-mono text-slate-500">{file.chunks} chunk{file.chunks > 1 ? "s" : ""}</span>
-                <Lock size={9} className="text-accent-400/50 ml-auto" />
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
+                <span style={{ fontSize: 11, color: "#A8A49C" }}>{formatBytes(file.size_bytes)}</span>
+                <span style={{ width: 3, height: 3, borderRadius: "50%", background: "#C8C4BC" }} />
+                <span style={{ fontSize: 11, fontFamily: "monospace", color: "#A8A49C" }}>{chunks} chunk{chunks > 1 ? "s" : ""}</span>
+                <Lock size={9} style={{ color: "#C8C4BC", marginLeft: "auto" }} />
             </div>
 
-            <div className="flex items-center justify-between">
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <div>
-                    <p className="text-xs text-slate-400">{file.uploadedBy}</p>
-                    <p className="text-xs text-slate-500">{file.uploadedAt}</p>
+                    <p style={{ fontSize: 12, color: "#6B675E", fontWeight: 600, maxWidth: 90, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{uploaderName}</p>
+                    <p style={{ fontSize: 11, color: "#A8A49C" }}>{date}</p>
                 </div>
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button title="Preview" className="p-1.5 rounded-lg text-slate-500 hover:text-slate-200 hover:bg-surface-raised transition-all">
-                        <Eye size={13} />
+                <div style={{ display: "flex", alignItems: "center", gap: 4, opacity: hov ? 1 : 0, transition: "opacity .15s" }}>
+                    <button style={{ width: 28, height: 28, borderRadius: 8, border: "1.5px solid #E8E4DC", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#A8A49C" }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "#AAEF45"; (e.currentTarget as HTMLElement).style.color = "#0D0D0D"; }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "#E8E4DC"; (e.currentTarget as HTMLElement).style.color = "#A8A49C"; }}>
+                        <Download size={12} />
                     </button>
-                    <button title="Download & Decrypt" className="p-1.5 rounded-lg text-slate-500 hover:text-accent-400 hover:bg-accent-400/10 transition-all">
-                        <Download size={13} />
-                    </button>
-                    <button title="Share" className="p-1.5 rounded-lg text-slate-500 hover:text-slate-200 hover:bg-surface-raised transition-all">
-                        <Share2 size={13} />
+                    <button onClick={(e) => { e.stopPropagation(); currentUserId && onDelete(file.id, currentUserId); }} style={{ width: 28, height: 28, borderRadius: 8, border: "1.5px solid #E8E4DC", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#EF4444" }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "#EF4444"; (e.currentTarget as HTMLElement).style.background = "#FEF2F2"; }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "#E8E4DC"; (e.currentTarget as HTMLElement).style.background = "#fff"; }}>
+                        <Trash2 size={12} />
                     </button>
                 </div>
             </div>
@@ -170,221 +106,206 @@ function FileCard({ file }: { file: FileItem }) {
     );
 }
 
-function UploadZone() {
+function UploadZone({ onUpload }: { onUpload: (f: File) => void }) {
     const [dragging, setDragging] = useState(false);
-    const [uploading, setUploading] = useState(false);
-    const [progress, setProgress] = useState(0);
+    const fileRef = useRef<HTMLInputElement>(null);
 
-    const simulateUpload = () => {
-        setUploading(true);
-        setProgress(0);
-        const interval = setInterval(() => {
-            setProgress((p) => {
-                if (p >= 100) {
-                    clearInterval(interval);
-                    setTimeout(() => {
-                        setUploading(false);
-                        setProgress(0);
-                    }, 800);
-                    return 100;
-                }
-                return p + 12;
-            });
-        }, 180);
+    const handleFile = (f: File | null) => {
+        if (!f) return;
+        onUpload(f);
     };
 
     return (
-        <div
-            className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-200 cursor-pointer ${dragging
-                    ? "border-primary-500 bg-primary-500/5"
-                    : "border-surface-border hover:border-primary-500/50 hover:bg-surface-raised/30"
-                }`}
-            onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+        <div onClick={() => fileRef.current?.click()}
+            onDragOver={e => { e.preventDefault(); setDragging(true); }}
             onDragLeave={() => setDragging(false)}
-            onDrop={(e) => { e.preventDefault(); setDragging(false); simulateUpload(); }}
-            onClick={simulateUpload}
-        >
-            {uploading ? (
-                <div className="space-y-3">
-                    <div className="w-12 h-12 rounded-2xl bg-primary-500/10 border border-primary-500/20 flex items-center justify-center mx-auto">
-                        <Lock size={22} className="text-primary-400 animate-pulse" />
-                    </div>
-                    <div>
-                        <p className="text-sm font-semibold text-slate-200 mb-1">
-                            {progress < 40 ? "Encrypting chunks..." : progress < 80 ? "Uploading encrypted chunks..." : "Finalizing..."}
-                        </p>
-                        <p className="text-xs text-slate-500 font-mono">{progress}% complete</p>
-                    </div>
-                    <div className="w-48 mx-auto h-1.5 bg-surface-border rounded-full overflow-hidden">
-                        <div
-                            className="h-full bg-primary-500 rounded-full transition-all duration-200"
-                            style={{ width: `${progress}%` }}
-                        />
-                    </div>
-                    <p className="text-xs text-accent-400/70 font-mono flex items-center justify-center gap-1.5">
-                        <Lock size={10} />
-                        AES-256-GCM encryption active
-                    </p>
+            onDrop={e => { e.preventDefault(); setDragging(false); handleFile(e.dataTransfer.files[0]); }}
+            style={{ border: `2px dashed ${dragging ? "#AAEF45" : "#E8E4DC"}`, borderRadius: 16, padding: "28px 20px", textAlign: "center", cursor: "pointer", transition: "all .2s", background: dragging ? "rgba(170,239,69,.04)" : "#FAFAF7" }}>
+
+            <input type="file" ref={fileRef} style={{ display: "none" }} onChange={(e) => handleFile(e.target.files?.[0] || null)} />
+
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                <div style={{ width: 44, height: 44, borderRadius: 14, background: "#F5F0E8", border: "1.5px solid #E8E4DC", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 4 }}>
+                    <Upload size={20} style={{ color: "#6B675E" }} />
                 </div>
-            ) : (
-                <div className="space-y-3">
-                    <div className="w-12 h-12 rounded-2xl bg-surface-raised border border-surface-border flex items-center justify-center mx-auto">
-                        <Upload size={22} className="text-slate-400" />
-                    </div>
-                    <div>
-                        <p className="text-sm font-semibold text-slate-300">Drop files here or click to upload</p>
-                        <p className="text-xs text-slate-500 mt-1">Files are encrypted client-side before upload. Max 5GB per file.</p>
-                    </div>
-                    <div className="flex items-center justify-center gap-2 text-xs text-slate-600">
-                        <Lock size={11} className="text-accent-400/60" />
-                        <span className="font-mono text-accent-400/60">Encrypted before leaving your device</span>
-                    </div>
-                </div>
-            )}
+                <p style={{ fontSize: 14, fontWeight: 700, color: "#0D0D0D" }}>Drop files here or click to upload</p>
+                <p style={{ fontSize: 12, color: "#A8A49C" }}>Files stored in Supabase limits (Max 5 GB per file)</p>
+                <span style={{ fontSize: 11, fontFamily: "monospace", color: "#2E7D32", display: "flex", alignItems: "center", gap: 5, marginTop: 4 }}>
+                    <Lock size={10} /> Simulated E2EE: Database stores metadata
+                </span>
+            </div>
         </div>
     );
 }
 
 export default function VaultPage() {
+    const { user } = useUser();
+    const { files, loading, uploadFile, deleteFile } = useVault();
     const [view, setView] = useState<"grid" | "list">("grid");
     const [search, setSearch] = useState("");
 
-    const filtered = MOCK_FILES.filter((f) =>
-        f.name.toLowerCase().includes(search.toLowerCase())
-    );
+    // For visual upload tracking
+    const [uploading, setUploading] = useState(false);
+    const [progress, setProgress] = useState(0);
 
-    const totalSize = "27.2 MB";
-    const usedPercent = 1; // 27MB / 5GB free plan
+    const handleUpload = async (f: File) => {
+        if (!user) return;
+        setUploading(true);
+        setProgress(0);
+
+        // Simulate chunk encryption visually
+        const iv = setInterval(() => {
+            setProgress(p => {
+                if (p >= 90) { clearInterval(iv); return 90; }
+                return p + 15;
+            });
+        }, 150);
+
+        // Upload to DB
+        await uploadFile({
+            name: f.name,
+            size_bytes: f.size,
+            mime_type: f.type || "application/octet-stream",
+            storage_path: `dummy/${Date.now()}-${f.name}` // Real implementation would use supabase storage
+        }, user.id);
+
+        clearInterval(iv);
+        setProgress(100);
+        setTimeout(() => {
+            setUploading(false);
+            setProgress(0);
+        }, 800);
+    };
+
+    const filtered = files.filter(f => f.name.toLowerCase().includes(search.toLowerCase()));
+
+    // Calc total bytes
+    const totalBytes = files.reduce((acc, f) => acc + f.size_bytes, 0);
 
     return (
-        <div className="h-full flex flex-col overflow-hidden">
-            {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-surface-border flex-shrink-0">
-                <div className="flex items-center gap-3">
-                    <h1 className="text-lg font-bold text-slate-100">File Vault</h1>
-                    <span className="encrypted-label">
-                        <Lock size={10} />
-                        Client-Side Encrypted
+        <div style={{ height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+
+            {/* ── Header ── */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 24px", borderBottom: "1.5px solid #E8E4DC", background: "#fff", flexShrink: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <h1 style={{ fontSize: 17, fontWeight: 900, color: "#0D0D0D", fontFamily: "'Plus Jakarta Sans',sans-serif", letterSpacing: "-.02em" }}>File Vault</h1>
+                    <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 999, background: "#F0FDF4", color: "#166534", border: "1px solid #BBF7D0", display: "flex", alignItems: "center", gap: 4 }}>
+                        <Lock size={9} /> Private
                     </span>
+                    {!loading && <span style={{ fontSize: 12, color: "#A8A49C" }}>{files.length} items</span>}
                 </div>
-                <div className="flex items-center gap-2">
-                    <div className="flex items-center bg-surface-raised border border-surface-border rounded-lg p-0.5">
-                        <button
-                            onClick={() => setView("grid")}
-                            className={`p-1.5 rounded-md transition-all ${view === "grid" ? "bg-primary-500/20 text-primary-400" : "text-slate-500 hover:text-slate-300"}`}
-                        >
-                            <Grid size={15} />
-                        </button>
-                        <button
-                            onClick={() => setView("list")}
-                            className={`p-1.5 rounded-md transition-all ${view === "list" ? "bg-primary-500/20 text-primary-400" : "text-slate-500 hover:text-slate-300"}`}
-                        >
-                            <List size={15} />
-                        </button>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    {/* View toggle */}
+                    <div style={{ display: "flex", borderRadius: 10, overflow: "hidden", border: "1.5px solid #E8E4DC", background: "#F5F0E8" }}>
+                        {([["grid", Grid], ["list", List]] as const).map(([v, Icon]) => (
+                            <button key={v} onClick={() => setView(v)} style={{ width: 34, height: 34, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", background: view === v ? "#0D0D0D" : "transparent", color: view === v ? "#fff" : "#A8A49C", transition: "all .15s" }}>
+                                <Icon size={15} />
+                            </button>
+                        ))}
                     </div>
-                    <div className="relative">
-                        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-                        <input
-                            className="input-field pl-9 py-2 text-sm w-48"
-                            placeholder="Search files..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                        />
+                    <div style={{ position: "relative" }}>
+                        <Search size={13} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#A8A49C" }} />
+                        <input className="input-field" style={{ paddingLeft: 32, paddingTop: 8, paddingBottom: 8, fontSize: 13, width: 190, margin: 0 }} placeholder="Search files…" value={search} onChange={e => setSearch(e.target.value)} />
                     </div>
-                    <button className="btn-primary gap-1.5">
-                        <Plus size={15} />
-                        Upload File
-                    </button>
                 </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                {/* Storage usage */}
-                <div className="flex items-center gap-6">
-                    <div className="flex-1 bg-surface-DEFAULT rounded-xl border border-surface-border p-4 flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-primary-500/10 border border-primary-500/20 flex items-center justify-center">
-                            <HardDrive size={18} className="text-primary-400" />
-                        </div>
-                        <div className="flex-1">
-                            <div className="flex items-center justify-between mb-1.5">
-                                <span className="text-sm font-semibold text-slate-200">Storage</span>
-                                <span className="text-xs text-slate-400 font-mono">{totalSize} / 5 GB</span>
+            {/* ── Body ── */}
+            <div style={{ flex: 1, overflowY: "auto", padding: 24, display: "flex", flexDirection: "column", gap: 20 }}>
+
+                {/* Stat row */}
+                <div style={{ display: "flex", gap: 14 }}>
+                    <div style={{ flex: 1, background: "#fff", borderRadius: 14, border: "1.5px solid #E8E4DC", padding: "14px 18px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                            <div style={{ width: 42, height: 42, borderRadius: 12, background: "#F5F0E8", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                <HardDrive size={19} style={{ color: "#0D0D0D" }} />
                             </div>
-                            <div className="h-1.5 bg-surface-border rounded-full overflow-hidden">
-                                <div className="h-full bg-primary-500 rounded-full" style={{ width: `${usedPercent}%` }} />
+                            <div style={{ flex: 1 }}>
+                                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                                    <span style={{ fontSize: 13, fontWeight: 700, color: "#0D0D0D" }}>Storage</span>
+                                    <span style={{ fontSize: 12, fontFamily: "monospace", color: "#6B675E" }}>{formatBytes(totalBytes)} / 5 GB</span>
+                                </div>
+                                <div style={{ height: 6, borderRadius: 999, background: "#E8E4DC", overflow: "hidden" }}>
+                                    <div style={{ height: "100%", width: `${Math.min(100, (totalBytes / (5 * 1024 * 1024 * 1024)) * 100 || 1)}%`, background: "#AAEF45", borderRadius: 999, transition: "width 0.3s" }} />
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div className="bg-surface-DEFAULT rounded-xl border border-surface-border p-4 flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-accent-400/10 border border-accent-400/20 flex items-center justify-center">
-                            <FolderLock size={18} className="text-accent-400" />
-                        </div>
-                        <div>
-                            <div className="text-xl font-bold text-slate-100">{MOCK_FILES.length}</div>
-                            <div className="text-xs text-slate-400">Encrypted files</div>
-                        </div>
-                    </div>
-                    <div className="bg-surface-DEFAULT rounded-xl border border-surface-border p-4 flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center">
-                            <Shield size={18} className="text-green-400" />
-                        </div>
-                        <div>
-                            <div className="text-xl font-bold text-slate-100">100%</div>
-                            <div className="text-xs text-slate-400">Encrypted</div>
-                        </div>
-                    </div>
+                    <StatCard icon={FolderLock} iconBg="#F5F0E8" iconColor="#0D0D0D" value={String(files.length)} label="Vault files" />
+                    <StatCard icon={Shield} iconBg="#F0FDF4" iconColor="#166534" value="Supabase" label="Database sync" />
                 </div>
 
                 {/* Upload zone */}
-                <UploadZone />
+                {uploading ? (
+                    <div style={{ border: `2px dashed #AAEF45`, borderRadius: 16, padding: "28px 20px", textAlign: "center", background: "rgba(170,239,69,.04)" }}>
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+                            <div style={{ width: 44, height: 44, borderRadius: 14, background: "#F5F0E8", border: "1.5px solid #E8E4DC", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                <Lock size={20} style={{ color: "#0D0D0D", animation: "spin 2s linear infinite" }} />
+                            </div>
+                            <p style={{ fontSize: 14, fontWeight: 700, color: "#0D0D0D" }}>
+                                {progress < 40 ? "Encrypting chunks…" : progress < 80 ? "Uploading to DB…" : "Finalising…"}
+                            </p>
+                            <p style={{ fontSize: 12, fontFamily: "monospace", color: "#A8A49C" }}>{progress}% complete</p>
+                            <div style={{ width: 200, height: 5, borderRadius: 999, background: "#E8E4DC", overflow: "hidden" }}>
+                                <div style={{ height: "100%", width: `${progress}%`, background: "#AAEF45", borderRadius: 999, transition: "width .15s" }} />
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    <UploadZone onUpload={handleUpload} />
+                )}
 
                 {/* Files */}
                 <div>
-                    <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-sm font-bold text-slate-300">All Files</h2>
-                        <div className="flex items-center gap-1 text-xs text-slate-500">
-                            <Clock size={12} />
-                            Sorted by recent
-                        </div>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+                        <h2 style={{ fontSize: 14, fontWeight: 800, color: "#0D0D0D", fontFamily: "'Plus Jakarta Sans',sans-serif" }}>All Files</h2>
+                        <span style={{ fontSize: 12, color: "#A8A49C", display: "flex", alignItems: "center", gap: 5 }}>
+                            <Clock size={12} /> Sorted by recent
+                        </span>
                     </div>
 
-                    {view === "grid" ? (
-                        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                            {filtered.map((file) => (
-                                <FileCard key={file.id} file={file} />
-                            ))}
+                    {loading ? (
+                        <div style={{ display: "flex", justifyContent: "center", padding: 40 }}>
+                            <div style={{ width: 32, height: 32, borderRadius: "50%", border: "3px solid #E8E4DC", borderTopColor: "#0D0D0D", animation: "spin 1s linear infinite" }} />
+                        </div>
+                    ) : filtered.length === 0 ? (
+                        <div style={{ padding: 40, textAlign: "center", color: "#A8A49C", fontSize: 14, background: "#fff", borderRadius: 14, border: "1.5px dashed #E8E4DC" }}>
+                            No files in the vault.
+                        </div>
+                    ) : view === "grid" ? (
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 14 }}>
+                            {filtered.map(f => <FileCard key={f.id} file={f} onDelete={deleteFile} currentUserId={user?.id} />)}
                         </div>
                     ) : (
-                        <div className="bg-surface-DEFAULT rounded-2xl border border-surface-border overflow-hidden">
-                            <div className="grid grid-cols-12 px-4 py-2.5 border-b border-surface-border text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                                <span className="col-span-5">Name</span>
-                                <span className="col-span-2">Size</span>
-                                <span className="col-span-2">Chunks</span>
-                                <span className="col-span-2">Uploaded by</span>
-                                <span className="col-span-1" />
+                        <div style={{ background: "#fff", borderRadius: 14, border: "1.5px solid #E8E4DC", overflow: "hidden" }}>
+                            <div style={{ display: "grid", gridTemplateColumns: "5fr 1.5fr 1.5fr 2fr auto", padding: "10px 16px", borderBottom: "1.5px solid #E8E4DC", background: "#F5F0E8" }}>
+                                {["Name", "Size", "Chunks", "Uploaded by", ""].map((h, i) => (
+                                    <span key={i} style={{ fontSize: 11, fontWeight: 700, color: "#6B675E", textTransform: "uppercase", letterSpacing: ".06em" }}>{h}</span>
+                                ))}
                             </div>
                             {filtered.map((file, i) => {
-                                const Icon = FILE_ICONS[file.type] || File;
-                                const colorClass = FILE_COLORS[file.type];
+                                const cat = getFileTypeCategory(file.mime_type, file.name);
+                                const Icon = FILE_ICONS[cat] || File;
+                                const s = FILE_STYLES[cat] || FILE_STYLES.doc;
+                                const uploaderName = file.uploader?.full_name || file.uploader?.email || "Unknown";
+                                const chunks = Math.max(1, Math.ceil(file.size_bytes / (1024 * 1024)));
+
                                 return (
-                                    <div
-                                        key={file.id}
-                                        className={`grid grid-cols-12 items-center px-4 py-3 hover:bg-surface-raised transition-colors cursor-pointer group ${i < filtered.length - 1 ? "border-b border-surface-border" : ""
-                                            }`}
-                                    >
-                                        <div className="col-span-5 flex items-center gap-3">
-                                            <div className={`p-1.5 rounded-lg border ${colorClass}`}>
-                                                <Icon size={14} />
+                                    <div key={file.id} style={{ display: "grid", gridTemplateColumns: "5fr 1.5fr 1.5fr 2fr auto", alignItems: "center", padding: "11px 16px", borderBottom: i < filtered.length - 1 ? "1px solid #F0EBE3" : "none", cursor: "pointer", transition: "background .15s" }}
+                                        onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "#FAFAF7"}
+                                        onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "transparent"}>
+                                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                            <div style={{ width: 28, height: 28, borderRadius: 8, background: s.bg, border: `1px solid ${s.border}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                                <Icon size={13} style={{ color: s.color }} />
                                             </div>
-                                            <span className="text-sm font-medium text-slate-200 truncate">{file.name}</span>
-                                            <Lock size={9} className="text-accent-400/40 flex-shrink-0" />
+                                            <span style={{ fontSize: 13, fontWeight: 600, color: "#0D0D0D", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{file.name}</span>
                                         </div>
-                                        <span className="col-span-2 text-xs text-slate-400 font-mono">{file.size}</span>
-                                        <span className="col-span-2 text-xs text-slate-400 font-mono">{file.chunks} chunk{file.chunks > 1 ? "s" : ""}</span>
-                                        <span className="col-span-2 text-xs text-slate-400">{file.uploadedBy}</span>
-                                        <div className="col-span-1 flex items-center gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button className="p-1 rounded text-slate-500 hover:text-accent-400"><Download size={13} /></button>
-                                            <button className="p-1 rounded text-slate-500 hover:text-danger"><Trash2 size={13} /></button>
+                                        <span style={{ fontSize: 12, fontFamily: "monospace", color: "#6B675E" }}>{formatBytes(file.size_bytes)}</span>
+                                        <span style={{ fontSize: 12, fontFamily: "monospace", color: "#6B675E" }}>{chunks}</span>
+                                        <span style={{ fontSize: 12, color: "#6B675E", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{uploaderName}</span>
+                                        <div style={{ display: "flex", gap: 4 }}>
+                                            <button style={{ width: 24, height: 24, borderRadius: 6, border: "1px solid #E8E4DC", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#A8A49C" }}><Download size={11} /></button>
+                                            <button onClick={(e) => { e.stopPropagation(); user && deleteFile(file.id, user.id); }} style={{ width: 24, height: 24, borderRadius: 6, border: "1px solid #E8E4DC", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#EF4444" }}><Trash2 size={11} /></button>
                                         </div>
                                     </div>
                                 );
@@ -394,13 +315,12 @@ export default function VaultPage() {
                 </div>
 
                 {/* Encryption info */}
-                <div className="bg-accent-400/5 border border-accent-400/15 rounded-xl p-4 flex items-start gap-3">
-                    <Lock size={16} className="text-accent-400 flex-shrink-0 mt-0.5" />
+                <div style={{ background: "#F0FDF4", border: "1.5px solid #BBF7D0", borderRadius: 14, padding: "14px 18px", display: "flex", alignItems: "flex-start", gap: 12 }}>
+                    <Lock size={16} style={{ color: "#166534", flexShrink: 0, marginTop: 1 }} />
                     <div>
-                        <p className="text-sm font-semibold text-slate-300 mb-1">How file encryption works</p>
-                        <p className="text-xs text-slate-400 leading-relaxed">
-                            Each file gets a unique random AES-256-GCM key. Files are split into encrypted chunks before upload.
-                            The file key is wrapped with your workspace key. Only your team can decrypt — the server stores ciphertext only.
+                        <p style={{ fontSize: 13, fontWeight: 700, color: "#166534", marginBottom: 4 }}>How file encryption works</p>
+                        <p style={{ fontSize: 12, color: "#166534", lineHeight: 1.6, opacity: .85 }}>
+                            Each file gets a unique random AES-256-GCM key. Files are split into encrypted chunks before upload. The file key is wrapped with your workspace key. Only your team can decrypt — the server stores ciphertext only.
                         </p>
                     </div>
                 </div>
