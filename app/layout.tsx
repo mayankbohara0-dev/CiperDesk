@@ -16,12 +16,15 @@ export const metadata: Metadata = {
     type: "website",
   },
   manifest: "/manifest.json",
-  themeColor: "#AAEF45",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
     title: "CipherDesk",
   },
+};
+
+export const viewport = {
+  themeColor: "#AAEF45",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

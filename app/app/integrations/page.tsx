@@ -4,6 +4,7 @@ import {
     Plug, Webhook, Key, Zap, Github, Code, Check, Copy, CheckCheck,
     Plus, Trash2, Eye, EyeOff, Globe, RefreshCw, ToggleLeft, ToggleRight, Lock,
 } from "lucide-react";
+import { useIntegrations, useWebhooks, useApiKeys, useUser } from "@/lib/hooks";
 
 type TabId = "apps" | "webhooks" | "api";
 
@@ -20,20 +21,21 @@ const CARD: React.CSSProperties = { background: "#fff", borderRadius: 16, border
 
 export default function IntegrationsPage() {
     const [tab, setTab] = useState<TabId>("apps");
-    const [enabled, setEnabled] = useState<Record<string, boolean>>({ GitHub: true, Webhook: true });
     const [showKey, setShowKey] = useState<Record<string, boolean>>({});
     const [copied, setCopied] = useState("");
 
-    const APPS = [
-        { name: "GitHub", icon: Github, desc: "Link PRs and commits to Kanban tasks. Auto-close tasks on merge.", accent: "#0D0D0D" },
-        { name: "Zapier", icon: Zap, desc: "Connect CipherDesk tasks/messages to 5,000+ other apps.", accent: "#F59E0B" },
-        { name: "Webhook", icon: Webhook, desc: "Custom HTTP webhooks for task/message metadata events.", accent: "#4F63FF" },
-        { name: "API", icon: Code, desc: "Direct API access for automations. Content requires client-side decryption.", accent: "#9333EA" },
-    ];
+    const { user } = useUser();
+    const { integrations, toggleIntegration } = useIntegrations();
+    const { webhooks, createWebhook, deleteWebhook } = useWebhooks();
+    const { apiKeys, createApiKey, deleteApiKey } = useApiKeys();
 
-    const API_KEYS = [
-        { name: "CI/CD Pipeline", prefix: "cd_live_xK9mQ", created: "Feb 10, 2026", lastUsed: "3h ago", scope: "tasks:read, vault:read" },
-        { name: "Metrics Script", prefix: "cd_live_bT4pR", created: "Mar 1, 2026", lastUsed: "1d ago", scope: "audit:read" },
+    const enabled = integrations.reduce((acc, i) => ({ ...acc, [i.name]: i.is_enabled }), {} as Record<string, boolean>);
+
+    const APPS = [
+        { name: "GitHub", icon: Github, desc: "Link PRs and commits to Kanban tasks. Auto-close tasks on merge.", accent: "#0D0D0D", soon: true },
+        { name: "Zapier", icon: Zap, desc: "Connect CipherDesk tasks/messages to 5,000+ other apps.", accent: "#F59E0B", soon: true },
+        { name: "Webhook", icon: Webhook, desc: "Custom HTTP webhooks for task/message metadata events.", accent: "#4F63FF", soon: false },
+        { name: "API", icon: Code, desc: "Direct API access for automations. Content requires client-side decryption.", accent: "#9333EA", soon: false },
     ];
 
     return (
@@ -72,14 +74,16 @@ export default function IntegrationsPage() {
                                         </div>
                                         <span style={{ fontSize: 14, fontWeight: 800, color: "#0D0D0D", fontFamily: "'Plus Jakarta Sans',sans-serif" }}>{app.name}</span>
                                     </div>
-                                    <button onClick={() => setEnabled(p => ({ ...p, [app.name]: !p[app.name] }))} style={{ background: "none", border: "none", cursor: "pointer", color: enabled[app.name] ? "#0D0D0D" : "#C8C4BC", transition: "color .2s" }}>
+                                    <button onClick={() => !app.soon && user && toggleIntegration(app.name, !enabled[app.name], user.id)} style={{ background: "none", border: "none", cursor: app.soon ? "not-allowed" : "pointer", color: enabled[app.name] ? "#0D0D0D" : "#C8C4BC", transition: "color .2s", opacity: app.soon ? 0.3 : 1 }}>
                                         {enabled[app.name] ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
                                     </button>
                                 </div>
                                 <p style={{ fontSize: 13, color: "#6B675E", lineHeight: 1.6, marginBottom: 14 }}>{app.desc}</p>
-                                {enabled[app.name]
+                                {app.soon ? (
+                                    <button disabled style={{ opacity: .8, display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 9, border: "1.5px solid #E8E4DC", background: "#F5F0E8", fontSize: 13, fontWeight: 600, color: "#6B675E", cursor: "not-allowed" }}>Coming in Phase 8</button>
+                                ) : enabled[app.name]
                                     ? <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 999, background: "#F0FDF4", color: "#166534", border: "1px solid #BBF7D0" }}><Check size={10} />Connected</span>
-                                    : <button style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 9, border: "1.5px solid #E8E4DC", background: "#fff", fontSize: 13, fontWeight: 600, color: "#0D0D0D", cursor: "pointer" }}><Plus size={13} />Connect</button>
+                                    : <button onClick={() => user && toggleIntegration(app.name, true, user.id)} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 9, border: "1.5px solid #E8E4DC", background: "#fff", fontSize: 13, fontWeight: 600, color: "#0D0D0D", cursor: "pointer" }}><Plus size={13} />Connect</button>
                                 }
                             </div>
                         ))}
@@ -91,31 +95,27 @@ export default function IntegrationsPage() {
                     <div style={{ ...CARD, overflow: "hidden" }}>
                         <div style={{ padding: "14px 20px", borderBottom: "1.5px solid #E8E4DC", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                             <h3 style={{ fontSize: 14, fontWeight: 800, color: "#0D0D0D", fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Active Webhooks</h3>
-                            <button className="btn-primary" style={{ padding: "7px 14px", fontSize: 12 }}><Plus size={12} />Add Webhook</button>
+                            <button className="btn-primary" style={{ padding: "7px 14px", fontSize: 12 }} onClick={() => {
+                                if (user) {
+                                    createWebhook(`https://api.example.com/hook-${Math.floor(Math.random() * 1000)}`, ["task.created", "message.sent"], user.id);
+                                }
+                            }}><Plus size={12} />Add Webhook</button>
                         </div>
-                        {[
-                            { url: "https://hooks.zapier.com/hooks/catch/xxxx/yyyy", events: ["task.created", "task.completed"], last: "3h ago" },
-                            { url: "https://ci.buildfast.io/cipherdesk/push", events: ["vault.upload"], last: "1d ago" },
-                        ].map((wh, i, arr) => (
-                            <div key={i} style={{ padding: "14px 20px", borderBottom: i < arr.length - 1 ? "1px solid #F0EBE3" : "none", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                                        <code style={{ fontSize: 12, fontFamily: "monospace", color: "#4F63FF", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{wh.url}</code>
-                                        <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#F0FDF4", color: "#166534", border: "1px solid #BBF7D0", whiteSpace: "nowrap" }}>200 OK</span>
-                                    </div>
-                                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-                                        {wh.events.map(ev => (
-                                            <span key={ev} style={{ fontSize: 11, fontFamily: "monospace", padding: "2px 8px", borderRadius: 5, background: "#F5F0E8", color: "#6B675E" }}>{ev}</span>
-                                        ))}
-                                        <span style={{ fontSize: 11, color: "#A8A49C" }}>· Last sent {wh.last}</span>
-                                    </div>
+                        {webhooks.length > 0 ? webhooks.map((hook, i) => (
+                            <div key={hook.id} style={{ padding: "16px 20px", borderBottom: i < webhooks.length - 1 ? "1px solid #F0EBE3" : "none", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                <div>
+                                    <div style={{ fontSize: 13, fontWeight: 700, color: "#0D0D0D" }}>{hook.url}</div>
+                                    <div style={{ fontSize: 11, color: "#A8A49C", marginTop: 4 }}>Events: {hook.events.join(", ")}</div>
                                 </div>
-                                <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-                                    <button style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 10px", borderRadius: 8, border: "1.5px solid #E8E4DC", background: "#fff", fontSize: 12, fontWeight: 600, color: "#0D0D0D", cursor: "pointer" }}><RefreshCw size={12} />Test</button>
-                                    <button style={{ width: 32, height: 32, borderRadius: 8, border: "1.5px solid #FECACA", background: "#FEE2E2", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#DC2626" }}><Trash2 size={13} /></button>
-                                </div>
+                                <button onClick={() => user && deleteWebhook(hook.id, user.id)} style={{ border: "none", background: "none", cursor: "pointer", color: "#A8A49C", padding: 6 }}>
+                                    <Trash2 size={13} />
+                                </button>
                             </div>
-                        ))}
+                        )) : (
+                            <div style={{ fontSize: 12, color: "#A8A49C", padding: "20px", textAlign: "center" }}>
+                                No active webhooks configured.
+                            </div>
+                        )}
                     </div>
 
                     <div style={{ ...CARD, padding: 20 }}>
@@ -130,43 +130,42 @@ export default function IntegrationsPage() {
                 {/* ── API Keys ── */}
                 {tab === "api" && (<>
                     <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                        <button className="btn-primary"><Plus size={14} />Create API Key</button>
+                        <button className="btn-primary" onClick={() => {
+                            if (user) {
+                                const id = Math.floor(Math.random() * 1000);
+                                createApiKey(`Service Key ${id}`, `pk_live_${id}_`, "hash_data", user.id);
+                            }
+                        }}><Plus size={14} />Create API Key</button>
                     </div>
 
                     <div style={{ ...CARD, overflow: "hidden" }}>
-                        {API_KEYS.map((k, i) => (
-                            <div key={k.name} style={{ padding: "16px 20px", borderBottom: i < API_KEYS.length - 1 ? "1px solid #F0EBE3" : "none" }}>
-                                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-                                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                                        <Key size={14} style={{ color: "#6B675E" }} />
-                                        <span style={{ fontSize: 14, fontWeight: 700, color: "#0D0D0D" }}>{k.name}</span>
+                        {apiKeys.length > 0 ? apiKeys.map((key, i, arr) => (
+                            <div key={key.name} style={{ padding: "16px 20px", borderBottom: i < arr.length - 1 ? "1px solid #F0EBE3" : "none", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
+                                <div>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+                                        <div style={{ fontSize: 13, fontWeight: 700, color: "#0D0D0D" }}>{key.name}</div>
+                                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                            <code style={{ fontSize: 11, fontFamily: "monospace", color: "#6B675E", background: "#F5F0E8", padding: "2px 8px", borderRadius: 6 }}>{showKey[key.name] ? key.key_prefix + "••••••••••" : key.key_prefix + "**********"}</code>
+                                            <button onClick={() => setShowKey(p => ({ ...p, [key.name]: !p[key.name] }))} style={{ border: "none", background: "none", cursor: "pointer", color: "#A8A49C", display: "flex", alignItems: "center" }}>
+                                                {showKey[key.name] ? <EyeOff size={13} /> : <Eye size={13} />}
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div style={{ display: "flex", gap: 8 }}>
-                                        <button onClick={() => { setCopied(k.name); setTimeout(() => setCopied(""), 2000); }}
-                                            style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 8, border: "1.5px solid #E8E4DC", background: "#fff", fontSize: 12, fontWeight: 600, color: "#0D0D0D", cursor: "pointer" }}>
-                                            {copied === k.name ? <><CheckCheck size={12} style={{ color: "#16A34A" }} />Copied</> : <><Copy size={12} />Copy</>}
-                                        </button>
-                                        <button style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 8, border: "1.5px solid #FECACA", background: "#FEE2E2", fontSize: 12, fontWeight: 600, color: "#DC2626", cursor: "pointer" }}>
-                                            <Trash2 size={12} />Revoke
-                                        </button>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 14, fontSize: 11, color: "#A8A49C" }}>
+                                        <span>Created {new Date(key.created_at).toLocaleDateString()}</span>
+                                        <span>Last used: {key.last_used ? new Date(key.last_used).toLocaleDateString() : "Never"}</span>
+                                        <div style={{ display: "flex", alignItems: "center", gap: 4 }}><Lock size={10} />{key.scope}</div>
                                     </div>
                                 </div>
-                                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                                    <code style={{ fontSize: 12, fontFamily: "monospace", color: "#9333EA", background: "#F5F3FF", border: "1px solid #DDD6FE", padding: "3px 10px", borderRadius: 6 }}>
-                                        {showKey[k.name] ? `${k.prefix}...full_key_hidden` : `${k.prefix}••••••••••••`}
-                                    </code>
-                                    <button onClick={() => setShowKey(p => ({ ...p, [k.name]: !p[k.name] }))}
-                                        style={{ border: "none", background: "none", cursor: "pointer", color: "#A8A49C", padding: 4 }}>
-                                        {showKey[k.name] ? <EyeOff size={13} /> : <Eye size={13} />}
-                                    </button>
-                                </div>
-                                <div style={{ display: "flex", gap: 14, fontSize: 11, color: "#A8A49C" }}>
-                                    <span>Created: {k.created}</span>
-                                    <span>Last used: {k.lastUsed}</span>
-                                    <span>Scope: <code style={{ color: "#4F63FF", fontFamily: "monospace" }}>{k.scope}</code></span>
-                                </div>
+                                <button onClick={() => user && deleteApiKey(key.id, user.id)} style={{ border: "none", background: "none", cursor: "pointer", color: "#A8A49C", padding: 6 }}>
+                                    <Trash2 size={13} />
+                                </button>
                             </div>
-                        ))}
+                        )) : (
+                            <div style={{ padding: "20px", textAlign: "center", color: "#6B675E", fontSize: 13 }}>
+                                No active API keys.
+                            </div>
+                        )}
                     </div>
 
                     <div style={{ background: "#FFFBEB", border: "1.5px solid #FDE68A", borderRadius: 12, padding: "11px 16px", fontSize: 12, color: "#92400E", display: "flex", gap: 10 }}>

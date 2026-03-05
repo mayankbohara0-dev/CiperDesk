@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
+import { CryptoManager } from "@/lib/crypto";
 
 export interface Profile {
     id: string;
@@ -98,7 +99,13 @@ export function useMessages(channelId: string | null) {
             .eq("channel_id", channelId)
             .order("created_at", { ascending: true })
             .limit(100);
-        setMessages((data as Message[]) ?? []);
+
+        const key = await CryptoManager.getOrGenerateLocalKey();
+        const decryptedMsgs = await Promise.all(((data as Message[]) ?? []).map(async (m) => {
+            return { ...m, content: await CryptoManager.decrypt(m.content, key) };
+        }));
+
+        setMessages(decryptedMsgs);
         setLoading(false);
     }, [channelId]);
 
@@ -123,7 +130,11 @@ export function useMessages(channelId: string | null) {
                     .select("*, profile:profiles(id, full_name, email, avatar_url, role)")
                     .eq("id", payload.new.id)
                     .single();
-                if (data) setMessages(prev => [...prev, data as Message]);
+                if (data) {
+                    const key = await CryptoManager.getOrGenerateLocalKey();
+                    const decryptedContent = await CryptoManager.decrypt(data.content, key);
+                    setMessages(prev => [...prev, { ...data, content: decryptedContent } as Message]);
+                }
             })
             .on("postgres_changes", {
                 event: "DELETE",
@@ -139,10 +150,13 @@ export function useMessages(channelId: string | null) {
 
     const sendMessage = useCallback(async (userId: string, content: string) => {
         if (!channelId || !content.trim()) return;
+        const key = await CryptoManager.getOrGenerateLocalKey();
+        const encrypted = await CryptoManager.encrypt(content.trim(), key);
+
         await supabase.from("messages").insert({
             channel_id: channelId,
             user_id: userId,
-            content: content.trim(),
+            content: encrypted,
         });
     }, [channelId]);
 
@@ -152,6 +166,30 @@ export function useMessages(channelId: string | null) {
 
     return { messages, loading, sendMessage, deleteMessage };
 }
+
+// ─── All Messages (Admin Dashboard) ──────────────────────────────
+export function useAllMessages() {
+    const [messages, setMessages] = useState<(Message & { channel?: { name: string } })[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        supabase
+            .from("messages")
+            .select("*, channel:channels(name)")
+            .order("created_at", { ascending: false })
+            .then(async ({ data }) => {
+                const key = await CryptoManager.getOrGenerateLocalKey();
+                const decryptedMsgs = await Promise.all((data ?? []).map(async (m: any) => {
+                    return { ...m, content: await CryptoManager.decrypt(m.content, key) };
+                }));
+                setMessages(decryptedMsgs);
+                setLoading(false);
+            });
+    }, []);
+
+    return { messages, loading };
+}
+
 
 // ─── Tasks ───────────────────────────────────────────────────────
 export interface Task {
@@ -419,3 +457,137 @@ export function useKeys() {
 
     return { keys, loading, createKey, rotateKey };
 }
+
+// ─── Integrations ─────────────────────────────────────────────
+export interface Integration {
+    id: string;
+    name: string;
+    is_enabled: boolean;
+    created_at: string;
+}
+
+export function useIntegrations() {
+    const [integrations, setIntegrations] = useState<Integration[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        supabase.from("integrations").select("*").then(({ data }) => {
+            setIntegrations(data ?? []);
+            setLoading(false);
+        });
+    }, []);
+
+    const toggleIntegration = async (name: string, is_enabled: boolean, userId: string) => {
+        // Upsert by name
+        const existing = integrations.find(i => i.name === name);
+        if (existing) {
+            await supabase.from("integrations").update({ is_enabled }).eq("id", existing.id);
+            setIntegrations(prev => prev.map(i => i.id === existing.id ? { ...i, is_enabled } : i));
+        } else {
+            const { data } = await supabase.from("integrations").insert({ name, is_enabled, created_by: userId }).select().single();
+            if (data) setIntegrations(prev => [...prev, data as Integration]);
+        }
+        logAudit(userId, "security", `Integration ${is_enabled ? 'Enabled' : 'Disabled'}`, `Integration: ${name}`, "warn");
+    };
+
+    return { integrations, loading, toggleIntegration };
+}
+
+// ─── Webhooks ─────────────────────────────────────────────────
+export interface Webhook {
+    id: string;
+    url: string;
+    events: string[];
+    is_active: boolean;
+    created_at: string;
+}
+
+export function useWebhooks() {
+    const [webhooks, setWebhooks] = useState<Webhook[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        supabase.from("webhooks").select("*").order("created_at", { ascending: false }).then(({ data }) => {
+            setWebhooks(data ?? []);
+            setLoading(false);
+        });
+    }, []);
+
+    const createWebhook = async (url: string, events: string[], userId: string) => {
+        const { data } = await supabase.from("webhooks").insert({ url, events, created_by: userId }).select().single();
+        if (data) {
+            setWebhooks(prev => [data as Webhook, ...prev]);
+            logAudit(userId, "security", "Webhook Created", `URL: ${url}`, "warn");
+        }
+    };
+
+    const deleteWebhook = async (id: string, userId: string) => {
+        await supabase.from("webhooks").delete().eq("id", id);
+        setWebhooks(prev => prev.filter(w => w.id !== id));
+        logAudit(userId, "security", "Webhook Deleted", `ID: ${id}`, "warn");
+    };
+
+    return { webhooks, loading, createWebhook, deleteWebhook };
+}
+
+// ─── API Keys ─────────────────────────────────────────────────
+export interface ApiKey {
+    id: string;
+    name: string;
+    key_prefix: string;
+    last_used: string | null;
+    scope: string;
+    created_at: string;
+}
+
+export function useApiKeys() {
+    const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        supabase.from("api_keys").select("*").order("created_at", { ascending: false }).then(({ data }) => {
+            setApiKeys(data ?? []);
+            setLoading(false);
+        });
+    }, []);
+
+    const createApiKey = async (name: string, prefix: string, hash: string, userId: string) => {
+        const { data } = await supabase.from("api_keys").insert({ name, key_prefix: prefix, key_hash: hash, created_by: userId }).select().single();
+        if (data) {
+            setApiKeys(prev => [data as ApiKey, ...prev]);
+            logAudit(userId, "security", "API Key Created", `Name: ${name}`, "warn");
+        }
+    };
+
+    const deleteApiKey = async (id: string, userId: string) => {
+        await supabase.from("api_keys").delete().eq("id", id);
+        setApiKeys(prev => prev.filter(k => k.id !== id));
+        logAudit(userId, "security", "API Key Deleted", `ID: ${id}`, "warn");
+    };
+
+    return { apiKeys, loading, createApiKey, deleteApiKey };
+}
+
+// ─── Workspace Settings ───────────────────────────────────────
+export function useWorkspaceSettings() {
+    const [retention, setRetention] = useState("1 year");
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        supabase.from("workspace_settings").select("*").limit(1).then(({ data }) => {
+            if (data && data.length > 0) {
+                setRetention(data[0].retention_policy);
+            }
+            setLoading(false);
+        });
+    }, []);
+
+    const updateRetention = async (policy: string, userId: string) => {
+        await supabase.from("workspace_settings").update({ retention_policy: policy, updated_by: userId }).neq('id', '00000000-0000-0000-0000-000000000000');
+        setRetention(policy);
+        logAudit(userId, "security", "Retention Policy Updated", `New Policy: ${policy}`, "warn");
+    };
+
+    return { retention, loading, updateRetention };
+}
+

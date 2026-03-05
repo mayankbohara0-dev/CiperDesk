@@ -4,6 +4,7 @@ import {
     ShieldCheck, Download, FileText, Lock, Check, AlertTriangle,
     Clock, RefreshCw, Globe, Archive, Trash2, Eye,
 } from "lucide-react";
+import { useVault, useAuditLog, useWorkspaceSettings, useUser } from "@/lib/hooks";
 
 type TabId = "overview" | "export" | "retention" | "gdpr";
 
@@ -34,14 +35,19 @@ function TabBtn({ id, label, active, onClick }: TabBtnProps) {
 
 export default function CompliancePage() {
     const [tab, setTab] = useState<TabId>("overview");
-    const [retention, setRetention] = useState("1 year");
     const [exporting, setExporting] = useState(false);
     const [exported, setExported] = useState(false);
+
+    const { retention, updateRetention } = useWorkspaceSettings();
+    const { user } = useUser();
 
     const handleExport = () => {
         setExporting(true);
         setTimeout(() => { setExporting(false); setExported(true); setTimeout(() => setExported(false), 3000); }, 2500);
     };
+
+    const { files } = useVault();
+    const { logs } = useAuditLog();
 
     const pass = CHECKS.filter(c => c.status === "pass").length;
     const warn = CHECKS.filter(c => c.status === "warn").length;
@@ -135,9 +141,9 @@ export default function CompliancePage() {
                         </p>
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 18 }}>
                             {[
-                                { icon: FileText, label: "Messages", count: "2,417 encrypted" },
-                                { icon: Lock, label: "Files", count: "23 vault items" },
-                                { icon: Archive, label: "Audit Log", count: "847 entries" },
+                                { icon: FileText, label: "Messages", count: "0 encrypted" },
+                                { icon: Lock, label: "Files", count: `${files.length} vault items` },
+                                { icon: Archive, label: "Audit Log", count: `${logs.length} entries` },
                             ].map(item => (
                                 <div key={item.label} style={{ padding: "14px 16px", borderRadius: 12, background: "#F5F0E8", border: "1.5px solid #E8E4DC", display: "flex", flexDirection: "column", gap: 8 }}>
                                     <item.icon size={16} style={{ color: "#6B675E" }} />
@@ -190,13 +196,13 @@ export default function CompliancePage() {
                                         <div style={{ fontSize: 13, fontWeight: 700, color: "#0D0D0D" }}>{cat}</div>
                                         <div style={{ fontSize: 11, color: "#A8A49C", marginTop: 2 }}>Encrypted · stored per workspace policy</div>
                                     </div>
-                                    <select className="input-field" value={retention} onChange={e => setRetention(e.target.value)} style={{ width: 130, margin: 0 }}>
+                                    <select className="input-field" value={retention} onChange={e => user && updateRetention(e.target.value, user.id)} style={{ width: 130, margin: 0 }}>
                                         {RETENTION_OPTIONS.map(o => <option key={o}>{o}</option>)}
                                     </select>
                                 </div>
                             ))}
                         </div>
-                        <button className="btn-primary" style={{ width: "fit-content" }}><Check size={14} />Save Retention Policy</button>
+                        <button className="btn-primary" style={{ width: "fit-content" }} onClick={() => user && updateRetention(retention, user.id)}><Check size={14} />Save Retention Policy</button>
                     </div>
                 )}
 

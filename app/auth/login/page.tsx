@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Shield, Lock, Eye, EyeOff, ArrowRight, Smartphone, Check, ChevronLeft } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
+import { CryptoManager } from "@/lib/crypto";
 import { useRouter } from "next/navigation";
 
 type Step = "credentials" | "twofa";
@@ -23,6 +24,9 @@ export default function LoginPage() {
         setError("");
         if (!email || !password) { setError("Please fill in all fields."); return; }
         setLoading(true);
+        // Load or generate local crypto key on sign in
+        await CryptoManager.getOrGenerateLocalKey();
+
         const { error: err } = await supabase.auth.signInWithPassword({ email, password });
         setLoading(false);
         if (err) { setError(err.message); return; }

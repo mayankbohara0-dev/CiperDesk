@@ -165,9 +165,7 @@ export default function KeysPage() {
                     <SectionHead icon={<Smartphone size={19} style={{ color: "#0D0D0D" }} />} title="Trusted Devices" sub="Devices approved to access your CipherDesk keys." />
                     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                         {[
-                            { name: "MacBook Pro 14\"", os: "macOS 14.4", ip: "10.0.1.42", last: "Now", current: true },
-                            { name: "iPhone 15 Pro", os: "iOS 17.3", ip: "10.0.1.67", last: "2h ago", current: false },
-                            { name: "Windows PC", os: "Windows 11", ip: "10.0.1.88", last: "3 days ago", current: false },
+                            { name: "Current Browser Session", os: "Current", ip: "", last: "Now", current: true },
                         ].map(dev => (
                             <div key={dev.name} style={{ padding: "12px 16px", borderRadius: 12, background: "#F5F0E8", border: `1.5px solid ${dev.current ? "#AAEF45" : "#E8E4DC"}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                                 <div>
@@ -175,7 +173,7 @@ export default function KeysPage() {
                                         <span style={{ fontSize: 13, fontWeight: 700, color: "#0D0D0D" }}>{dev.name}</span>
                                         {dev.current && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 999, background: "#AAEF45", color: "#0D0D0D" }}>This device</span>}
                                     </div>
-                                    <p style={{ fontSize: 12, color: "#A8A49C" }}>{dev.os} · {dev.ip} · Last seen: {dev.last}</p>
+                                    <p style={{ fontSize: 12, color: "#A8A49C" }}>{dev.os} {dev.ip ? `· ${dev.ip}` : ""} · Last seen: {dev.last}</p>
                                 </div>
                                 {!dev.current && (
                                     <button style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 9, background: "#FEE2E2", border: "1.5px solid #FECACA", color: "#DC2626", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>

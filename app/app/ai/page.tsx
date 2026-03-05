@@ -4,6 +4,7 @@ import {
     Sparkles, Lock, Brain, ListChecks, FileText, Mail,
     RefreshCw, Clock, Shield, TrendingUp,
 } from "lucide-react";
+import { useAllMessages, useTasks, useUser } from "@/lib/hooks";
 
 const DECISIONS = [
     "Team agreed to use Argon2id over bcrypt for all password operations.",
@@ -42,7 +43,20 @@ export default function AiPage() {
     const [generated, setGenerated] = useState(true);
     const [addedTasks, setAddedTasks] = useState<string[]>([]);
 
-    const addTask = (title: string) => setAddedTasks(p => [...p, title]);
+    const { messages } = useAllMessages();
+    const { createTask } = useTasks();
+    const { user } = useUser();
+
+    // calculate unique channels and messages in last 7 days
+    const now = new Date();
+    const lastWeekMsgs = messages.filter(m => (now.getTime() - new Date(m.created_at).getTime()) <= 7 * 24 * 60 * 60 * 1000);
+    const activeChannels = new Set(lastWeekMsgs.map(m => m.channel_id)).size;
+
+    const addTask = async (title: string, priority: "low" | "medium" | "high") => {
+        if (!user) return;
+        setAddedTasks(p => [...p, title]);
+        await createTask({ title, priority, status: "todo" }, user.id);
+    };
 
     const regenerate = () => {
         setGenerating(true); setGenerated(false);
@@ -113,7 +127,7 @@ export default function AiPage() {
                             </div>
                             <div>
                                 <h2 style={{ fontSize: 15, fontWeight: 800, color: "#0D0D0D", fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Weekly Summary</h2>
-                                <p style={{ fontSize: 12, color: "#A8A49C" }}>Feb 24 – Mar 3 · 4 channels · 127 messages</p>
+                                <p style={{ fontSize: 12, color: "#A8A49C" }}>Past 7 days · {activeChannels} active channels · {lastWeekMsgs.length} messages</p>
                             </div>
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -126,63 +140,79 @@ export default function AiPage() {
                     </div>
 
                     {/* 2-col: decisions + tasks */}
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                    <div style={{ position: "relative" }}>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, filter: "blur(5px)", pointerEvents: "none", opacity: 0.6 }}>
 
-                        {/* Key decisions */}
-                        <div style={CARD}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-                                <div style={{ width: 36, height: 36, borderRadius: 11, background: "#F5F0E8", border: "1.5px solid #E8E4DC", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                    <TrendingUp size={17} style={{ color: "#0D0D0D" }} />
+                            {/* Key decisions */}
+                            <div style={CARD}>
+                                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+                                    <div style={{ width: 36, height: 36, borderRadius: 11, background: "#F5F0E8", border: "1.5px solid #E8E4DC", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                        <TrendingUp size={17} style={{ color: "#0D0D0D" }} />
+                                    </div>
+                                    <div>
+                                        <h2 style={{ fontSize: 14, fontWeight: 800, color: "#0D0D0D", fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Key Decisions</h2>
+                                        <p style={{ fontSize: 12, color: "#A8A49C" }}>Extracted from conversations</p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <h2 style={{ fontSize: 14, fontWeight: 800, color: "#0D0D0D", fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Key Decisions</h2>
-                                    <p style={{ fontSize: 12, color: "#A8A49C" }}>Extracted from conversations</p>
-                                </div>
+                                <ul style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                                    {DECISIONS.map((d, i) => (
+                                        <li key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                                            <div style={{ width: 22, height: 22, borderRadius: "50%", background: "#AAEF45", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>
+                                                <span style={{ fontSize: 10, fontWeight: 900, color: "#0D0D0D" }}>{i + 1}</span>
+                                            </div>
+                                            <span style={{ fontSize: 13, color: "#2D2D2D", lineHeight: 1.55 }}>{d}</span>
+                                        </li>
+                                    ))}
+                                </ul>
                             </div>
-                            <ul style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                                {DECISIONS.map((d, i) => (
-                                    <li key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-                                        <div style={{ width: 22, height: 22, borderRadius: "50%", background: "#AAEF45", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>
-                                            <span style={{ fontSize: 10, fontWeight: 900, color: "#0D0D0D" }}>{i + 1}</span>
-                                        </div>
-                                        <span style={{ fontSize: 13, color: "#2D2D2D", lineHeight: 1.55 }}>{d}</span>
-                                    </li>
-                                ))}
-                            </ul>
+
+                            {/* Suggested tasks */}
+                            <div style={CARD}>
+                                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+                                    <div style={{ width: 36, height: 36, borderRadius: 11, background: "#F0FDF4", border: "1.5px solid #BBF7D0", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                        <ListChecks size={17} style={{ color: "#166534" }} />
+                                    </div>
+                                    <div>
+                                        <h2 style={{ fontSize: 14, fontWeight: 800, color: "#0D0D0D", fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Suggested Tasks</h2>
+                                        <p style={{ fontSize: 12, color: "#A8A49C" }}>AI found action items in chat</p>
+                                    </div>
+                                </div>
+                                <ul style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                                    {AUTO_TASKS.map(t => {
+                                        const added = addedTasks.includes(t.title);
+                                        const pc = PCOLORS[t.priority];
+                                        return (
+                                            <li key={t.title} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                                <div style={{ flex: 1 }}>
+                                                    <p style={{ fontSize: 13, fontWeight: 600, color: added ? "#A8A49C" : "#0D0D0D", textDecoration: added ? "line-through" : "none" }}>{t.title}</p>
+                                                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3 }}>
+                                                        <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 7px", borderRadius: 999, background: pc.bg, color: pc.color }}>{t.priority}</span>
+                                                        <span style={{ fontSize: 11, color: "#A8A49C" }}>{t.from}</span>
+                                                    </div>
+                                                </div>
+                                                <button onClick={() => addTask(t.title, t.priority.toLowerCase() as any)} disabled={added}
+                                                    style={{ flexShrink: 0, padding: "5px 12px", borderRadius: 8, border: "1.5px solid", borderColor: added ? "#BBF7D0" : "#E8E4DC", background: added ? "#F0FDF4" : "#fff", fontSize: 12, fontWeight: 700, color: added ? "#166534" : "#0D0D0D", cursor: added ? "default" : "pointer", display: "flex", alignItems: "center", gap: 5 }}>
+                                                    {added ? "✓ Added" : "+ Add Task"}
+                                                </button>
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
+                            </div>
                         </div>
 
-                        {/* Suggested tasks */}
-                        <div style={CARD}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-                                <div style={{ width: 36, height: 36, borderRadius: 11, background: "#F0FDF4", border: "1.5px solid #BBF7D0", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                    <ListChecks size={17} style={{ color: "#166534" }} />
+                        {/* Coming soon overlay */}
+                        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10 }}>
+                            <div style={{ background: "#fff", border: "1.5px solid #E8E4DC", borderRadius: 14, padding: "24px 32px", textAlign: "center", boxShadow: "0 10px 40px rgba(0,0,0,0.06)", display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+                                <div style={{ width: 44, height: 44, borderRadius: 12, background: "#FFFBEB", border: "1.5px solid #FDE68A", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                    <Lock size={20} style={{ color: "#D97706" }} />
                                 </div>
                                 <div>
-                                    <h2 style={{ fontSize: 14, fontWeight: 800, color: "#0D0D0D", fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Suggested Tasks</h2>
-                                    <p style={{ fontSize: 12, color: "#A8A49C" }}>AI found action items in chat</p>
+                                    <h3 style={{ fontSize: 16, fontWeight: 900, color: "#0D0D0D", fontFamily: "'Plus Jakarta Sans',sans-serif" }}>AI Insights (Waitlist)</h3>
+                                    <p style={{ fontSize: 13, color: "#6B675E", marginTop: 4, maxWidth: 280, lineHeight: 1.6 }}>Local-only LLM processing for action extraction and decisions is coming in Phase 8.</p>
                                 </div>
+                                <button className="btn-primary" style={{ marginTop: 6, pointerEvents: "none", opacity: 0.8 }} disabled>Join Waitlist</button>
                             </div>
-                            <ul style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                                {AUTO_TASKS.map(t => {
-                                    const added = addedTasks.includes(t.title);
-                                    const pc = PCOLORS[t.priority];
-                                    return (
-                                        <li key={t.title} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                                            <div style={{ flex: 1 }}>
-                                                <p style={{ fontSize: 13, fontWeight: 600, color: added ? "#A8A49C" : "#0D0D0D", textDecoration: added ? "line-through" : "none" }}>{t.title}</p>
-                                                <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3 }}>
-                                                    <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 7px", borderRadius: 999, background: pc.bg, color: pc.color }}>{t.priority}</span>
-                                                    <span style={{ fontSize: 11, color: "#A8A49C" }}>{t.from}</span>
-                                                </div>
-                                            </div>
-                                            <button onClick={() => addTask(t.title)} disabled={added}
-                                                style={{ flexShrink: 0, padding: "5px 12px", borderRadius: 8, border: "1.5px solid", borderColor: added ? "#BBF7D0" : "#E8E4DC", background: added ? "#F0FDF4" : "#fff", fontSize: 12, fontWeight: 700, color: added ? "#166534" : "#0D0D0D", cursor: added ? "default" : "pointer", display: "flex", alignItems: "center", gap: 5 }}>
-                                                {added ? "✓ Added" : "+ Add Task"}
-                                            </button>
-                                        </li>
-                                    );
-                                })}
-                            </ul>
                         </div>
                     </div>
 

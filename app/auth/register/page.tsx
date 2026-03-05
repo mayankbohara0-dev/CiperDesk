@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Shield, Lock, Eye, EyeOff, ArrowRight, Check } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
+import { CryptoManager } from "@/lib/crypto";
 import { useRouter } from "next/navigation";
 
 function strengthScore(pw: string) {
@@ -38,6 +39,9 @@ export default function RegisterPage() {
         if (!workspace || !name || !email || !password) { setError("Please fill in all fields."); return; }
         if (score < 2) { setError("Password is too weak. Add uppercase, numbers, or symbols."); return; }
         setLoading(true);
+        // Gen real key
+        await CryptoManager.getOrGenerateLocalKey();
+
         const { error: err } = await supabase.auth.signUp({
             email,
             password,

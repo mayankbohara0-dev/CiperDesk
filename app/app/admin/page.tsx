@@ -4,9 +4,7 @@ import {
     BarChart3, Users, MessageSquare, FolderLock, CheckSquare,
     TrendingUp, Lock, Shield, Zap, Activity, Clock, HardDrive,
 } from "lucide-react";
-import { useMembers, useMessages, useTasks, useVault, useAuditLog } from "@/lib/hooks";
-
-const DAILY_MOCK = [28, 44, 31, 67, 52, 89, 73, 41, 56, 78, 92, 64, 83, 47, 61, 95, 72, 38, 54, 87, 66, 44, 71, 88, 52, 79, 63, 91, 58, 76];
+import { useMembers, useAllMessages, useTasks, useVault, useAuditLog } from "@/lib/hooks";
 
 function getAvatarBg(id: string) {
     const colors = ["#4F63FF", "#9333EA", "#2E7D32", "#D97706", "#DC2626", "#0891B2"];
@@ -19,18 +17,18 @@ export default function AdminPage() {
     const [period, setPeriod] = useState<"7d" | "30d" | "90d">("30d");
     const { members, loading: l1 } = useMembers();
 
-    // Use a placeholder channel ID or aggregate if possible. We don't have a cross-channel "useAllMessages" in hooks,
-    // so we'll mock message statistics slightly, but bind everything else accurately.
+    const { messages, loading: l2 } = useAllMessages();
     const { tasks, loading: l3 } = useTasks();
     const { files, loading: l4 } = useVault();
     const { logs, loading: l5 } = useAuditLog();
 
-    const loading = l1 || l3 || l4 || l5;
+    const loading = l1 || l2 || l3 || l4 || l5;
 
     // Derived stats
     const totalMembers = members.length;
     const completedTasks = tasks.filter(t => t.status === "done").length;
     const totalTasks = tasks.length;
+    const totalMessages = messages.length;
 
     const vaultBytes = files.reduce((acc, f) => acc + f.size_bytes, 0);
     const vaultGb = (vaultBytes / (1024 * 1024 * 1024)).toFixed(2);
@@ -40,21 +38,35 @@ export default function AdminPage() {
 
     const STAT_CARDS = [
         { label: "Total Members", value: totalMembers.toString(), sub: "Active accounts", icon: Users, accent: "#4F63FF" },
-        { label: "Estimated Messages", value: "8,214", sub: "+18% vs last month", icon: MessageSquare, accent: "#9333EA" },
+        { label: "Total Messages", value: totalMessages.toLocaleString(), sub: "Encrypted payloads", icon: MessageSquare, accent: "#9333EA" },
         { label: "Tasks Completed", value: completedTasks.toString(), sub: `of ${totalTasks} total`, icon: CheckSquare, accent: "#22C55E" },
         { label: "Vault Storage Used", value: `${vaultGb} GB`, sub: "of 5 GB free plan", icon: FolderLock, accent: "#F59E0B" },
         { label: "Encryption Events", value: encryptionOps.toLocaleString(), sub: "AES-256-GCM ops", icon: Lock, accent: "#0D0D0D" },
         { label: "Audit Log Entries", value: logs.length.toString(), sub: "Signed ledger", icon: Shield, accent: "#DC2626" },
     ];
 
-    const CHANNEL_ACTIVITY = [
-        { name: "# general", msgs: 847, pct: 100 },
-        { name: "# engineering", msgs: 612, pct: 72 },
-        { name: "# design", msgs: 298, pct: 35 },
-    ];
+    const days = period === "7d" ? 7 : period === "30d" ? 30 : 90;
+    const dailyChart = new Array(days).fill(0);
+    const channelMap: Record<string, number> = {};
+    const now = new Date();
 
-    const maxBar = Math.max(...DAILY_MOCK);
-    const days = period === "7d" ? 7 : 30;
+    messages.forEach(m => {
+        const mDate = new Date(m.created_at);
+        const diffDays = Math.floor((now.getTime() - mDate.getTime()) / (1000 * 60 * 60 * 24));
+        if (diffDays >= 0 && diffDays < days) {
+            dailyChart[days - 1 - diffDays]++;
+        }
+
+        const chName = m.channel ? `#${m.channel.name}` : "Direct Message";
+        channelMap[chName] = (channelMap[chName] || 0) + 1;
+    });
+
+    const channelActivity = Object.entries(channelMap)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([name, msgs]) => ({ name, msgs, pct: totalMessages ? Math.round((msgs / totalMessages) * 100) : 0 }));
+
+    const maxBar = Math.max(...dailyChart, 1);
 
     return (
         <div style={{ height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
@@ -113,7 +125,7 @@ export default function AdminPage() {
                                     {[25, 50, 75, 100].map(pct => (
                                         <div key={pct} style={{ position: "absolute", left: 0, right: 0, bottom: `${pct}%`, height: 1, background: "#F0EBE3", pointerEvents: "none" }} />
                                     ))}
-                                    {DAILY_MOCK.slice(0, days).map((v, i) => (
+                                    {dailyChart.map((v, i) => (
                                         <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "100%" }}>
                                             <div style={{
                                                 width: "100%", borderRadius: "3px 3px 0 0",
@@ -135,7 +147,7 @@ export default function AdminPage() {
                             <div style={{ background: "#fff", border: "1.5px solid #E8E4DC", borderRadius: 16, padding: 22 }}>
                                 <h3 style={{ fontSize: 15, fontWeight: 800, color: "#0D0D0D", fontFamily: "'Plus Jakarta Sans',sans-serif", marginBottom: 18 }}>Channel Activity</h3>
                                 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                                    {CHANNEL_ACTIVITY.map(ch => (
+                                    {channelActivity.length > 0 ? channelActivity.map(ch => (
                                         <div key={ch.name}>
                                             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 6 }}>
                                                 <span style={{ color: "#0D0D0D", fontWeight: 600 }}>{ch.name}</span>
@@ -145,7 +157,9 @@ export default function AdminPage() {
                                                 <div style={{ height: "100%", borderRadius: 3, background: "#0D0D0D", width: `${ch.pct}%`, transition: "width .8s cubic-bezier(.22,1,.36,1)" }} />
                                             </div>
                                         </div>
-                                    ))}
+                                    )) : (
+                                        <div style={{ fontSize: 12, color: "#A8A49C", padding: "10px 0" }}>No channel activity to display yet.</div>
+                                    )}
                                 </div>
                             </div>
                         </div>

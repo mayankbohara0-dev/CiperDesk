@@ -18,11 +18,7 @@ const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
     { id: "billing", label: "Billing", icon: Sparkles },
 ];
 
-const DEVICES = [
-    { id: "1", name: "MacBook Pro 16\"", Icon: Laptop, os: "macOS 14.3", location: "Mumbai, India", lastActive: "Active now", isCurrent: true, browser: "Chrome 122" },
-    { id: "2", name: "Windows PC", Icon: Monitor, os: "Windows 11", location: "Pune, India", lastActive: "2 hours ago", isCurrent: false, browser: "Edge 121" },
-    { id: "3", name: "iPhone 15 Pro", Icon: Smartphone, os: "iOS 17.3", location: "Mumbai, India", lastActive: "Yesterday, 9:30 PM", isCurrent: false, browser: "Safari" },
-];
+const DEVICES: { id: string; name: string; Icon: React.ElementType; os: string; location: string; lastActive: string; isCurrent: boolean; browser: string }[] = [];
 
 /* shared helpers */
 const SH2 = ({ children }: { children: React.ReactNode }) => (
@@ -258,7 +254,7 @@ function SecurityTab() {
             <div>
                 <SH2>Active Devices</SH2>
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                    {DEVICES.map(d => (
+                    {DEVICES.length > 0 ? DEVICES.map(d => (
                         <Card key={d.id} style={{ display: "flex", alignItems: "center", gap: 14 }}>
                             <div style={{ width: 42, height: 42, borderRadius: 12, background: "#F5F0E8", border: "1.5px solid #E8E4DC", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                                 <d.Icon size={19} style={{ color: "#6B675E" }} />
@@ -282,7 +278,11 @@ function SecurityTab() {
                                 </button>
                             )}
                         </Card>
-                    ))}
+                    )) : (
+                        <Card style={{ padding: "20px", textAlign: "center", color: "#6B675E", fontSize: 13 }}>
+                            No active devices are currently logged in.
+                        </Card>
+                    )}
                 </div>
             </div>
         </div>

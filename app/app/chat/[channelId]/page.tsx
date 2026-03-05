@@ -61,8 +61,45 @@ export default function ChatPage() {
     const [search, setSearch] = useState("");
     const [showSearch, setShowSearch] = useState(false);
     const [reactions, setReactions] = useState<Record<string, string[]>>({});
+    const [typingUsers, setTypingUsers] = useState<Record<string, { name: string, exp: number }>>({});
     const bottomRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
+
+    // Typing broadcasts
+    useEffect(() => {
+        if (!resolvedChannelId || !user) return;
+        const channel = supabase.channel(`typing-${resolvedChannelId}`);
+        channel.on("broadcast", { event: "typing" }, (payload) => {
+            if (payload.payload.userId === user?.id) return;
+            setTypingUsers(p => ({ ...p, [payload.payload.userId]: { name: payload.payload.name, exp: Date.now() + 4000 } }));
+        }).subscribe();
+
+        const cleanup = setInterval(() => {
+            const now = Date.now();
+            setTypingUsers(p => {
+                const next = { ...p };
+                let changed = false;
+                for (const k in next) if (next[k].exp < now) { delete next[k]; changed = true; }
+                return changed ? next : p;
+            });
+        }, 1000);
+
+        return () => { supabase.removeChannel(channel); clearInterval(cleanup); };
+    }, [resolvedChannelId, user]);
+
+    useEffect(() => {
+        if (!resolvedChannelId || !user) return;
+        const pingInterval = setInterval(() => {
+            if (input.length > 0) {
+                supabase.channel(`typing-${resolvedChannelId}`).send({
+                    type: "broadcast",
+                    event: "typing",
+                    payload: { userId: user.id, name: profile?.full_name || profile?.email || "Someone" },
+                });
+            }
+        }, 2000);
+        return () => clearInterval(pingInterval);
+    }, [input, resolvedChannelId, user, profile]);
 
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -268,6 +305,17 @@ export default function ChatPage() {
                 <div ref={bottomRef} />
             </div>
 
+            {Object.values(typingUsers).length > 0 && (
+                <div style={{ padding: "0 24px 6px", fontSize: 11, color: "#A8A49C", display: "flex", alignItems: "center", gap: 6 }}>
+                    <div style={{ display: "flex", gap: 3, alignItems: "center" }}>
+                        <div style={{ width: 4, height: 4, borderRadius: "50%", background: "#A8A49C", animation: "pulse 1s ease-in-out infinite" }} />
+                        <div style={{ width: 4, height: 4, borderRadius: "50%", background: "#A8A49C", animation: "pulse 1s ease-in-out infinite .2s" }} />
+                        <div style={{ width: 4, height: 4, borderRadius: "50%", background: "#A8A49C", animation: "pulse 1s ease-in-out infinite .4s" }} />
+                    </div>
+                    {Object.values(typingUsers).map(t => t.name).join(", ")} is typing…
+                </div>
+            )}
+
             {/* Composer */}
             <div style={{ padding: "12px 20px", borderTop: "1.5px solid #E8E4DC", background: "#fff", flexShrink: 0 }}>
                 <div style={{ display: "flex", gap: 10, alignItems: "flex-end", background: "#F5F0E8", border: "1.5px solid #E8E4DC", borderRadius: 14, padding: "8px 12px", transition: "border-color .15s" }}
@@ -277,7 +325,12 @@ export default function ChatPage() {
                         <Paperclip size={15} />
                     </button>
                     <textarea ref={inputRef} placeholder={`Message #${currentChannel?.name ?? channelId}…`}
-                        value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown} rows={1}
+                        value={input} onChange={e => {
+                            setInput(e.target.value);
+                            if (e.target.value.length === 1 && resolvedChannelId && user) {
+                                supabase.channel(`typing-${resolvedChannelId}`).send({ type: "broadcast", event: "typing", payload: { userId: user.id, name: profile?.full_name || profile?.email || "Someone" } });
+                            }
+                        }} onKeyDown={handleKeyDown} rows={1}
                         style={{ flex: 1, border: "none", outline: "none", background: "transparent", fontSize: 14, color: "#0D0D0D", resize: "none", fontFamily: "Inter,sans-serif", lineHeight: 1.5, maxHeight: 120, overflowY: "auto" }} />
                     <button style={{ flexShrink: 0, width: 28, height: 28, borderRadius: 8, border: "none", background: "none", cursor: "pointer", color: "#A8A49C", display: "flex", alignItems: "center", justifyContent: "center" }}>
                         <Smile size={15} />
