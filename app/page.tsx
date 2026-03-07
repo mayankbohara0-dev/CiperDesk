@@ -262,27 +262,27 @@ export default function LandingPage() {
 
   const features = [
     {
-      icon: MessageSquare, title: "Encrypted Chat", badge: "E2E",
-      desc: "Double Ratchet protocol. AES-256-GCM per message. Real-time channels with zero server-side plaintext, ever.",
-      pts: ["Thread replies + reactions", "One-click msg → task", "Real-time via WebSockets"],
+      icon: Zap, title: "Lightning Fast Sync", badge: "Low Latency",
+      desc: "Changes propagate across your devices in milliseconds. Enjoy real-time collaboration without sacrificing your privacy.",
+      pts: ["WebSocket-based sync engine", "Optimistic UI updates", "Seamless offline mode queues"],
       bg: "#AAEF45", textColor: "#0D0D0D",
     },
     {
-      icon: CheckSquare, title: "Task Boards", badge: "Zero-Knowledge",
-      desc: "Kanban & list views. Tasks stored as encrypted JSON blobs — the server has no idea what your sprint looks like.",
-      pts: ["Kanban + List toggle", "Priority + labels + assignees", "Encrypted deadlines"],
+      icon: Shield, title: "Advanced Audit", badge: "Compliance",
+      desc: "An immutable ledger of every critical workspace action. Exportable, searchable, and fully cryptographically signed.",
+      pts: ["Exportable CSV / JSON logs", "Key rotation tracking", "Permission change histories"],
       bg: "#0D0D0D", textColor: "#fff",
     },
     {
-      icon: FolderLock, title: "File Vault", badge: "Client Encrypted",
-      desc: "Files split into 512KB chunks, each AES-256-GCM encrypted. Reassembled only on authorized devices.",
-      pts: ["Per-chunk encryption", "5 GB free / 100 GB Pro", "Secure preview & sharing"],
+      icon: KeyRound, title: "Role-Based Access", badge: "Zero-Trust",
+      desc: "Enforce strict security guardrails. You define who has access to which channels, boards, and files with granular precision.",
+      pts: ["Custom member permissions", "Zero-knowledge revokes", "Admin-only settings lockdown"],
       bg: "#EDE8DE", textColor: "#0D0D0D",
     },
     {
-      icon: Sparkles, title: "AI Digest", badge: "Pro — Local AI",
-      desc: "AI runs after client-side decryption locally. Summarizes threads, extracts decisions, auto-suggests tasks.",
-      pts: ["Chat summarization", "Decision extraction", "Encrypted digest emails"],
+      icon: Sparkles, title: "Local AI Digest", badge: "Pro — Private AI",
+      desc: "AI runs completely within your browser after client-side decryption. It reads your threads locally, not our servers.",
+      pts: ["Automated chat summaries", "Action-item extraction", "No external API calls"],
       bg: "#AAEF45", textColor: "#0D0D0D",
     },
   ];
@@ -585,11 +585,11 @@ export default function LandingPage() {
         <div style={{ maxWidth: 1100, margin: "0 auto" }}>
           <div style={{ textAlign: "center", marginBottom: 64 }}>
             <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#0D0D0D", borderRadius: 999, padding: "5px 14px", marginBottom: 20 }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: "var(--lime)", textTransform: "uppercase", letterSpacing: ".06em" }}>Everything you need</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "var(--lime)", textTransform: "uppercase", letterSpacing: ".06em" }}>Platform Capabilities</span>
             </div>
-            <h2 className="section-heading">No bloat. Just the goods.</h2>
+            <h2 className="section-heading">Built for power & privacy.</h2>
             <p className="section-subheading" style={{ margin: "16px auto 0", textAlign: "center" }}>
-              Chat, tasks, and file vault — all encrypted. Built for startup teams who value privacy.
+              Enterprise-grade administration and local AI tools, running completely in your browser.
             </p>
           </div>
 
