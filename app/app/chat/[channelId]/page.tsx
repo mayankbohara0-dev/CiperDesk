@@ -72,7 +72,7 @@ export default function ChatPage() {
     useEffect(() => {
         if (!resolvedChannelId || !user) return;
         const channel = supabase.channel(`typing-${resolvedChannelId}`);
-        channel.on("broadcast", { event: "typing" }, (payload) => {
+        channel.on("broadcast", { event: "typing" }, (payload: any) => {
             if (payload.payload.userId === user?.id) return;
             setTypingUsers(p => ({ ...p, [payload.payload.userId]: { name: payload.payload.name, exp: Date.now() + 4000 } }));
         }).subscribe();

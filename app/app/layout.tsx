@@ -275,7 +275,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 padding: "12px 0 10px", gap: 4, zIndex: 20,
             }}>
                 {/* Logo */}
-                <Link href="/" style={{
+                <Link href="/app/chat/general" style={{
                     width: 36, height: 36, borderRadius: 10, marginBottom: 8,
                     display: "flex", alignItems: "center", justifyContent: "center",
                     transition: "transform .2s", textDecoration: "none", overflow: "hidden",

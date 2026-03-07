@@ -36,13 +36,14 @@ export function useUser() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        supabase.auth.getUser().then(({ data: { user } }) => {
+        supabase.auth.getUser().then((response: any) => {
+            const user = response.data?.user;
             setUser(user);
             if (user) fetchProfile(user.id);
             else setLoading(false);
         });
 
-        const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+        const { data: listener } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
             const u = session?.user ?? null;
             setUser(u);
             if (u) fetchProfile(u.id);
@@ -77,7 +78,7 @@ export function useChannels() {
             .from("channels")
             .select("*")
             .order("created_at")
-            .then(({ data }) => {
+            .then(({ data }: any) => {
                 setChannels(data ?? []);
                 setLoading(false);
             });
@@ -123,7 +124,7 @@ export function useMessages(channelId: string | null) {
                 schema: "public",
                 table: "messages",
                 filter: `channel_id=eq.${channelId}`,
-            }, async (payload) => {
+            }, async (payload: any) => {
                 // Fetch full message with profile
                 const { data } = await supabase
                     .from("messages")
@@ -140,7 +141,7 @@ export function useMessages(channelId: string | null) {
                 event: "DELETE",
                 schema: "public",
                 table: "messages",
-            }, (payload) => {
+            }, (payload: any) => {
                 setMessages(prev => prev.filter(m => m.id !== payload.old.id));
             })
             .subscribe();
@@ -177,7 +178,7 @@ export function useAllMessages() {
             .from("messages")
             .select("*, channel:channels(name)")
             .order("created_at", { ascending: false })
-            .then(async ({ data }) => {
+            .then(async ({ data }: any) => {
                 const key = await CryptoManager.getOrGenerateLocalKey();
                 const decryptedMsgs = await Promise.all((data ?? []).map(async (m: any) => {
                     return { ...m, content: await CryptoManager.decrypt(m.content, key) };
@@ -248,7 +249,7 @@ export function useMembers() {
             .from("profiles")
             .select("*")
             .order("created_at")
-            .then(({ data }) => {
+            .then(({ data }: any) => {
                 setMembers(data ?? []);
                 setLoading(false);
             });
@@ -341,7 +342,7 @@ export function useNotifications(userId: string | undefined) {
             .select("*")
             .eq("user_id", userId)
             .order("created_at", { ascending: false })
-            .then(({ data }) => {
+            .then(({ data }: any) => {
                 setNotifications(data ?? []);
                 setLoading(false);
             });
@@ -384,7 +385,7 @@ export function useAuditLog() {
             .select("*, actor:profiles!audit_log_actor_id_fkey(id, full_name, email, avatar_url, role)")
             .order("created_at", { ascending: false })
             .limit(100)
-            .then(({ data }) => {
+            .then(({ data }: any) => {
                 setLogs(data ?? []);
                 setLoading(false);
             });
@@ -471,7 +472,7 @@ export function useIntegrations() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        supabase.from("integrations").select("*").then(({ data }) => {
+        supabase.from("integrations").select("*").then(({ data }: any) => {
             setIntegrations(data ?? []);
             setLoading(false);
         });
@@ -507,7 +508,7 @@ export function useWebhooks() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        supabase.from("webhooks").select("*").order("created_at", { ascending: false }).then(({ data }) => {
+        supabase.from("webhooks").select("*").order("created_at", { ascending: false }).then(({ data }: any) => {
             setWebhooks(data ?? []);
             setLoading(false);
         });
@@ -545,7 +546,7 @@ export function useApiKeys() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        supabase.from("api_keys").select("*").order("created_at", { ascending: false }).then(({ data }) => {
+        supabase.from("api_keys").select("*").order("created_at", { ascending: false }).then(({ data }: any) => {
             setApiKeys(data ?? []);
             setLoading(false);
         });
@@ -574,7 +575,7 @@ export function useWorkspaceSettings() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        supabase.from("workspace_settings").select("*").limit(1).then(({ data }) => {
+        supabase.from("workspace_settings").select("*").limit(1).then(({ data }: any) => {
             if (data && data.length > 0) {
                 setRetention(data[0].retention_policy);
             }
@@ -606,7 +607,7 @@ export function usePresence(userId: string | undefined) {
                 const state = channel.presenceState();
                 setOnlineUsers(Object.keys(state));
             })
-            .subscribe(async (status) => {
+            .subscribe(async (status: any) => {
                 if (status === "SUBSCRIBED") {
                     await channel.track({ userId, online_at: new Date().toISOString() });
                 }
