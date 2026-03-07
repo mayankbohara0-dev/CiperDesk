@@ -16,6 +16,7 @@ const MAIN_NAV = [
     { icon: MessageSquare, label: "Chat", href: "/app/chat/general", match: "/app/chat" },
     { icon: CheckSquare, label: "Tasks", href: "/app/tasks", match: "/app/tasks" },
     { icon: FolderLock, label: "Vault", href: "/app/vault", match: "/app/vault" },
+    { icon: Users, label: "Members", href: "/app/members", match: "/app/members" },
 ];
 
 const SETTINGS_HREF = "/app/settings";
@@ -167,6 +168,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                         </Link>
                     );
                 })}
+
+                {/* Persistent Invite Button in Chat Sidebar */}
+                <Link href="/app/members" style={{
+                    display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", marginTop: 8,
+                    borderRadius: 9, fontSize: 13, fontWeight: 600, color: "#6B675E", textDecoration: "none",
+                    border: "1px dashed var(--grey-2)", transition: "all .15s"
+                }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "var(--grey-1)"; (e.currentTarget as HTMLElement).style.color = "#0D0D0D"; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = "#6B675E"; }}>
+                    <div style={{ width: 22, height: 22, borderRadius: 7, background: "var(--grey-2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <Plus size={12} style={{ color: "#0D0D0D" }} />
+                    </div>
+                    Invite teammates
+                </Link>
             </div>
 
             {/* E2E status */}
