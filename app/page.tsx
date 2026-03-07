@@ -1,11 +1,12 @@
 "use client";
 import Link from "next/link";
+import Image from "next/image";
 import { useState, useEffect } from "react";
 import {
   Shield, Lock, MessageSquare, CheckSquare, FolderLock,
   Sparkles, ArrowRight, Star, Menu, X,
   Eye, KeyRound, Check, Github, Twitter, ArrowUpRight,
-  Zap, Users, BarChart2, ChevronRight,
+  Zap, ChevronRight,
 } from "lucide-react";
 
 /* ── Navbar ───────────────────────────────────── */
@@ -40,10 +41,9 @@ function Navbar() {
       }}>
         <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
           <div style={{
-            width: 34, height: 34, borderRadius: 10,
-            background: "#0D0D0D", display: "flex", alignItems: "center", justifyContent: "center",
+            width: 34, height: 34, borderRadius: 10, overflow: "hidden",
           }}>
-            <Shield size={16} style={{ color: "#AAEF45" }} />
+            <Image src="/logo.png" alt="CipherDesk" width={34} height={34} style={{ objectFit: "cover", borderRadius: 10 }} />
           </div>
           <span style={{ fontSize: 17, fontWeight: 800, fontFamily: "'Plus Jakarta Sans',sans-serif", color: "#0D0D0D", letterSpacing: "-.02em" }}>
             CipherDesk
@@ -73,7 +73,7 @@ function Navbar() {
           <Link href="/auth/register" className="btn-primary" style={{ fontSize: 14, padding: "9px 20px" }}>
             Get started <ChevronRight size={14} />
           </Link>
-          <button className="btn-ghost" style={{ padding: 8, display: "none" }} id="mobile-menu-btn" onClick={() => setMobileOpen(!mobileOpen)}>
+          <button className="btn-ghost" style={{ padding: 8 }} id="mobile-menu-btn" aria-label="Toggle menu" onClick={() => setMobileOpen(!mobileOpen)}>
             {mobileOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
         </div>
@@ -257,6 +257,8 @@ function FloatingWidgets() {
    LANDING PAGE
 ═══════════════════════════════════════════════════ */
 export default function LandingPage() {
+  const [activeTab, setActiveTab] = useState<"Chat" | "Tasks" | "Vault">("Chat");
+
 
   const features = [
     {
@@ -356,7 +358,7 @@ export default function LandingPage() {
             <Link href="/auth/register" className="btn-primary" style={{ fontSize: 15, padding: "13px 28px" }}>
               Start for free <ArrowRight size={16} />
             </Link>
-            <Link href="/app/chat/general" className="btn-dark" style={{ fontSize: 15, padding: "13px 28px" }}>
+            <Link href="/auth/register" className="btn-dark" style={{ fontSize: 15, padding: "13px 28px" }}>
               <Eye size={15} /> View demo
             </Link>
           </div>
@@ -402,11 +404,11 @@ export default function LandingPage() {
       <section style={{ padding: "80px 28px 60px", background: "#0D0D0D" }}>
         <div style={{ maxWidth: 1100, margin: "0 auto" }}>
           <div style={{ display: "flex", gap: 4, marginBottom: 64, background: "rgba(255,255,255,.06)", borderRadius: 999, padding: 4, width: "fit-content" }}>
-            {["Chat", "Tasks", "Vault"].map((tab, i) => (
-              <button key={tab} style={{
+            {(["Chat", "Tasks", "Vault"] as const).map((tab) => (
+              <button key={tab} onClick={() => setActiveTab(tab)} style={{
                 padding: "8px 24px", borderRadius: 999, fontSize: 14, fontWeight: 700,
-                background: i === 0 ? "var(--lime)" : "transparent",
-                color: i === 0 ? "#0D0D0D" : "#6B675E",
+                background: activeTab === tab ? "var(--lime)" : "transparent",
+                color: activeTab === tab ? "#0D0D0D" : "#6B675E",
                 border: "none", cursor: "pointer", transition: "all .2s",
               }}>
                 {tab}
@@ -414,64 +416,167 @@ export default function LandingPage() {
             ))}
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 60, alignItems: "center" }}>
-            <div>
-              <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", color: "#6B675E", marginBottom: 16, display: "block" }}>Encrypted Messaging</span>
-              <h2 style={{ fontSize: "2.5rem", fontWeight: 900, fontFamily: "'Plus Jakarta Sans',sans-serif", color: "#fff", letterSpacing: "-.03em", lineHeight: 1.1, marginBottom: 20 }}>
-                Real-time chat with zero plaintext leaks
-              </h2>
-              <p style={{ fontSize: 15, color: "#6B675E", lineHeight: 1.75, marginBottom: 32 }}>
-                Every message is encrypted on your device using AES-256-GCM before it ever touches our servers. We are <strong style={{ color: "#A8A49C" }}>physically incapable</strong> of reading your conversations.
-              </p>
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                {["Double Ratchet protocol (Signal-grade)", "Per-message unique encryption keys", "Message → Task conversion in one click", "Thread replies, reactions & file sharing"].map(pt => (
-                  <div key={pt} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-                    <div style={{ width: 20, height: 20, borderRadius: 6, background: "var(--lime)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}>
-                      <Check size={12} style={{ color: "#0D0D0D" }} />
+          {/* Tab content */}
+          {activeTab === "Chat" && (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 60, alignItems: "center" }}>
+              <div>
+                <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", color: "#6B675E", marginBottom: 16, display: "block" }}>Encrypted Messaging</span>
+                <h2 style={{ fontSize: "2.5rem", fontWeight: 900, fontFamily: "'Plus Jakarta Sans',sans-serif", color: "#fff", letterSpacing: "-.03em", lineHeight: 1.1, marginBottom: 20 }}>
+                  Real-time chat with zero plaintext leaks
+                </h2>
+                <p style={{ fontSize: 15, color: "#6B675E", lineHeight: 1.75, marginBottom: 32 }}>
+                  Every message is encrypted on your device using AES-256-GCM before it ever touches our servers. We are <strong style={{ color: "#A8A49C" }}>physically incapable</strong> of reading your conversations.
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  {["Double Ratchet protocol (Signal-grade)", "Per-message unique encryption keys", "Message → Task conversion in one click", "Thread replies, reactions & file sharing"].map(pt => (
+                    <div key={pt} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                      <div style={{ width: 20, height: 20, borderRadius: 6, background: "var(--lime)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}>
+                        <Check size={12} style={{ color: "#0D0D0D" }} />
+                      </div>
+                      <span style={{ fontSize: 14, color: "#A8A49C" }}>{pt}</span>
                     </div>
-                    <span style={{ fontSize: 14, color: "#A8A49C" }}>{pt}</span>
+                  ))}
+                </div>
+                <div style={{ marginTop: 36 }}>
+                  <Link href="/auth/register" className="btn-primary" style={{ fontSize: 14 }}>
+                    Get started free <ArrowRight size={15} />
+                  </Link>
+                </div>
+              </div>
+
+              {/* Mini chat preview */}
+              <div style={{ background: "#1A1A1A", borderRadius: 20, padding: 24, border: "1px solid rgba(255,255,255,.06)" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}># general</span>
+                  <div style={{ background: "rgba(170,239,69,.15)", border: "1px solid rgba(170,239,69,.3)", borderRadius: 999, padding: "3px 10px", display: "flex", alignItems: "center", gap: 5 }}>
+                    <Lock size={10} style={{ color: "var(--lime)" }} />
+                    <span style={{ fontSize: 10, fontFamily: "monospace", color: "var(--lime)" }}>E2E Encrypted</span>
+                  </div>
+                </div>
+                {[
+                  { av: "AM", c: "var(--lime)", tc: "#0D0D0D", n: "Arjun Mehta", t: "10:32", m: "Pushed auth flow. Review when you get a chance 🚀" },
+                  { av: "PS", c: "#fff", tc: "#0D0D0D", n: "Priya Sharma", t: "10:34", m: "On it! Converting the deploy issue to a task →" },
+                  { av: "Y", c: "#2D2D2D", tc: "#fff", n: "You", t: "10:35", m: "Done. Kanban card created with P1 priority." },
+                ].map(m => (
+                  <div key={m.n} style={{ display: "flex", gap: 10, marginBottom: 16 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 10, background: m.c, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, color: m.tc, flexShrink: 0 }}>{m.av}</div>
+                    <div>
+                      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: "#E2E8F0" }}>{m.n}</span>
+                        <span style={{ fontSize: 11, color: "#475569" }}>{m.t}</span>
+                        <Lock size={9} style={{ color: "rgba(170,239,69,.5)" }} />
+                      </div>
+                      <p style={{ fontSize: 13, color: "#94A3B8", marginTop: 2, lineHeight: 1.5 }}>{m.m}</p>
+                    </div>
+                  </div>
+                ))}
+                <div style={{ background: "#0D0D0D", border: "1px solid rgba(255,255,255,.08)", borderRadius: 12, padding: "10px 14px", display: "flex", alignItems: "center", gap: 8 }}>
+                  <Lock size={12} style={{ color: "rgba(170,239,69,.5)" }} />
+                  <span style={{ fontSize: 12, color: "#475569" }}>Message #general (encrypted)</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "Tasks" && (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 60, alignItems: "center" }}>
+              <div>
+                <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", color: "#6B675E", marginBottom: 16, display: "block" }}>Zero-Knowledge Task Boards</span>
+                <h2 style={{ fontSize: "2.5rem", fontWeight: 900, fontFamily: "'Plus Jakarta Sans',sans-serif", color: "#fff", letterSpacing: "-.03em", lineHeight: 1.1, marginBottom: 20 }}>
+                  Sprint planning the server can&apos;t read
+                </h2>
+                <p style={{ fontSize: 15, color: "#6B675E", lineHeight: 1.75, marginBottom: 32 }}>
+                  Tasks are stored as encrypted JSON blobs. The server has no idea what your sprint looks like, who owns what, or when your deadlines are.
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  {["Kanban + List view toggle", "Priority, labels & assignees — all encrypted", "Deadline reminders — decrypted on device only", "One-click message → task conversion"].map(pt => (
+                    <div key={pt} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                      <div style={{ width: 20, height: 20, borderRadius: 6, background: "var(--lime)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}>
+                        <Check size={12} style={{ color: "#0D0D0D" }} />
+                      </div>
+                      <span style={{ fontSize: 14, color: "#A8A49C" }}>{pt}</span>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ marginTop: 36 }}>
+                  <Link href="/auth/register" className="btn-primary" style={{ fontSize: 14 }}>
+                    Start free <ArrowRight size={15} />
+                  </Link>
+                </div>
+              </div>
+              <div style={{ background: "#1A1A1A", borderRadius: 20, padding: 24, border: "1px solid rgba(255,255,255,.06)" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>Sprint Board</span>
+                  <div style={{ background: "rgba(170,239,69,.15)", border: "1px solid rgba(170,239,69,.3)", borderRadius: 999, padding: "3px 10px", display: "flex", alignItems: "center", gap: 5 }}>
+                    <Lock size={10} style={{ color: "var(--lime)" }} />
+                    <span style={{ fontSize: 10, fontFamily: "monospace", color: "var(--lime)" }}>Encrypted</span>
+                  </div>
+                </div>
+                {[
+                  { label: "P1 — Auth Deploy", status: "Done", bg: "#AAEF45", tc: "#0D0D0D" },
+                  { label: "P2 — Key Rotation", status: "In Progress", bg: "rgba(255,255,255,.08)", tc: "#94A3B8" },
+                  { label: "P3 — Mobile App", status: "Todo", bg: "rgba(255,255,255,.05)", tc: "#475569" },
+                ].map(t => (
+                  <div key={t.label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px", borderRadius: 12, background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.06)", marginBottom: 8 }}>
+                    <span style={{ fontSize: 13, color: "#E2E8F0", fontWeight: 600 }}>{t.label}</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 999, background: t.bg, color: t.tc }}>{t.status}</span>
                   </div>
                 ))}
               </div>
-              <div style={{ marginTop: 36 }}>
-                <Link href="/app/chat/general" className="btn-primary" style={{ fontSize: 14 }}>
-                  Try it live <ArrowRight size={15} />
-                </Link>
-              </div>
             </div>
+          )}
 
-            {/* Mini chat preview */}
-            <div style={{ background: "#1A1A1A", borderRadius: 20, padding: 24, border: "1px solid rgba(255,255,255,.06)" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-                <span style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}># general</span>
-                <div style={{ background: "rgba(170,239,69,.15)", border: "1px solid rgba(170,239,69,.3)", borderRadius: 999, padding: "3px 10px", display: "flex", alignItems: "center", gap: 5 }}>
-                  <Lock size={10} style={{ color: "var(--lime)" }} />
-                  <span style={{ fontSize: 10, fontFamily: "monospace", color: "var(--lime)" }}>E2E Encrypted</span>
+          {activeTab === "Vault" && (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 60, alignItems: "center" }}>
+              <div>
+                <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", color: "#6B675E", marginBottom: 16, display: "block" }}>Client-Encrypted File Vault</span>
+                <h2 style={{ fontSize: "2.5rem", fontWeight: 900, fontFamily: "'Plus Jakarta Sans',sans-serif", color: "#fff", letterSpacing: "-.03em", lineHeight: 1.1, marginBottom: 20 }}>
+                  Files the server can never open
+                </h2>
+                <p style={{ fontSize: 15, color: "#6B675E", lineHeight: 1.75, marginBottom: 32 }}>
+                  Every file is chunked into 512 KB pieces and each chunk is AES-256-GCM encrypted on your device. Only authorized team members with the workspace key can reassemble them.
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  {["Per-chunk AES-256-GCM encryption", "5 GB free / 100 GB Pro storage", "Secure preview — decrypted in-browser only", "Cryptographically signed sharing links"].map(pt => (
+                    <div key={pt} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                      <div style={{ width: 20, height: 20, borderRadius: 6, background: "var(--lime)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}>
+                        <Check size={12} style={{ color: "#0D0D0D" }} />
+                      </div>
+                      <span style={{ fontSize: 14, color: "#A8A49C" }}>{pt}</span>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ marginTop: 36 }}>
+                  <Link href="/auth/register" className="btn-primary" style={{ fontSize: 14 }}>
+                    Start free <ArrowRight size={15} />
+                  </Link>
                 </div>
               </div>
-              {[
-                { av: "AM", c: "var(--lime)", tc: "#0D0D0D", n: "Arjun Mehta", t: "10:32", m: "Pushed auth flow. Review when you get a chance 🚀" },
-                { av: "PS", c: "#fff", tc: "#0D0D0D", n: "Priya Sharma", t: "10:34", m: "On it! Converting the deploy issue to a task →" },
-                { av: "Y", c: "#2D2D2D", tc: "#fff", n: "You", t: "10:35", m: "Done. Kanban card created with P1 priority." },
-              ].map(m => (
-                <div key={m.n} style={{ display: "flex", gap: 10, marginBottom: 16 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: 10, background: m.c, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, color: m.tc, flexShrink: 0 }}>{m.av}</div>
-                  <div>
-                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: "#E2E8F0" }}>{m.n}</span>
-                      <span style={{ fontSize: 11, color: "#475569" }}>{m.t}</span>
-                      <Lock size={9} style={{ color: "rgba(170,239,69,.5)" }} />
-                    </div>
-                    <p style={{ fontSize: 13, color: "#94A3B8", marginTop: 2, lineHeight: 1.5 }}>{m.m}</p>
+              <div style={{ background: "#1A1A1A", borderRadius: 20, padding: 24, border: "1px solid rgba(255,255,255,.06)" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>File Vault</span>
+                  <div style={{ background: "rgba(170,239,69,.15)", border: "1px solid rgba(170,239,69,.3)", borderRadius: 999, padding: "3px 10px", display: "flex", alignItems: "center", gap: 5 }}>
+                    <Lock size={10} style={{ color: "var(--lime)" }} />
+                    <span style={{ fontSize: 10, fontFamily: "monospace", color: "var(--lime)" }}>E2E Encrypted</span>
                   </div>
                 </div>
-              ))}
-              <div style={{ background: "#0D0D0D", border: "1px solid rgba(255,255,255,.08)", borderRadius: 12, padding: "10px 14px", display: "flex", alignItems: "center", gap: 8 }}>
-                <Lock size={12} style={{ color: "rgba(170,239,69,.5)" }} />
-                <span style={{ fontSize: 12, color: "#475569" }}>Message #general (encrypted)</span>
+                {[
+                  { name: "Q1-financials.pdf", size: "2.4 MB", enc: true },
+                  { name: "product-roadmap.fig", size: "8.1 MB", enc: true },
+                  { name: "team-contracts.zip", size: "1.2 MB", enc: true },
+                ].map(f => (
+                  <div key={f.name} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 12, background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.06)", marginBottom: 8 }}>
+                    <FolderLock size={16} style={{ color: "var(--lime)", flexShrink: 0 }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13, color: "#E2E8F0", fontWeight: 600 }}>{f.name}</div>
+                      <div style={{ fontSize: 11, color: "#475569" }}>{f.size}</div>
+                    </div>
+                    {f.enc && <Lock size={11} style={{ color: "rgba(170,239,69,.6)" }} />}
+                  </div>
+                ))}
               </div>
             </div>
-          </div>
+          )}
         </div>
       </section>
 
@@ -552,16 +657,16 @@ export default function LandingPage() {
           </div>
 
           {/* Crypto specs */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(185px, 1fr))", gap: 10 }}>
             {cryptoSpecs.map(c => (
               <div key={c.l} style={{
                 display: "flex", alignItems: "center", justifyContent: "space-between",
-                padding: "14px 18px", borderRadius: 14,
+                padding: "14px 18px", borderRadius: 14, gap: 12,
                 background: "#fff", border: "1px solid var(--grey-2)",
                 boxShadow: "var(--shadow-sm)",
               }}>
-                <span style={{ fontSize: 12, color: "#A8A49C" }}>{c.l}</span>
-                <span style={{ fontSize: 13, fontFamily: "monospace", fontWeight: 700, color: "#0D0D0D" }}>{c.v}</span>
+                <span style={{ fontSize: 12, color: "#A8A49C", flexShrink: 0 }}>{c.l}</span>
+                <span style={{ fontSize: 12, fontFamily: "monospace", fontWeight: 700, color: "#0D0D0D", textAlign: "right" }}>{c.v}</span>
               </div>
             ))}
           </div>
@@ -689,8 +794,8 @@ export default function LandingPage() {
       {/* ─── CTA ────────────────────────────────── */}
       <section style={{ padding: "100px 28px", background: "#0D0D0D" }}>
         <div style={{ maxWidth: 640, margin: "0 auto", textAlign: "center" }}>
-          <div style={{ width: 72, height: 72, borderRadius: 22, background: "var(--lime)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 32px" }} className="animate-float">
-            <Shield size={32} style={{ color: "#0D0D0D" }} />
+          <div style={{ width: 80, height: 80, borderRadius: 24, background: "#AAEF45", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 32px" }} className="animate-float">
+            <Shield size={40} style={{ color: "#0D0D0D" }} />
           </div>
           <h2 style={{ fontSize: "clamp(2.2rem, 5vw, 3.5rem)", fontWeight: 900, fontFamily: "'Plus Jakarta Sans',sans-serif", color: "#fff", letterSpacing: "-.04em", marginBottom: 20, lineHeight: 1.1 }}>
             Ready to encrypt<br />your workflow?
@@ -702,10 +807,10 @@ export default function LandingPage() {
             <Link href="/auth/register" className="btn-primary" style={{ fontSize: 16, padding: "14px 30px" }}>
               Create workspace <ArrowRight size={18} />
             </Link>
-            <Link href="/app/chat/general" className="btn-secondary" style={{ fontSize: 16, padding: "13px 30px", borderColor: "rgba(255,255,255,.15)", color: "#fff" }}
+            <Link href="/auth/register" className="btn-secondary" style={{ fontSize: 16, padding: "13px 30px", borderColor: "rgba(255,255,255,.15)", color: "#fff" }}
               onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,.08)"; }}
               onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}>
-              View live demo
+              Start free today
             </Link>
           </div>
         </div>
@@ -715,17 +820,23 @@ export default function LandingPage() {
       <footer style={{ background: "#0D0D0D", borderTop: "1px solid rgba(255,255,255,.06)", padding: "32px 28px" }}>
         <div style={{ maxWidth: 1100, margin: "0 auto", display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 20 }}>
           <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
-            <div style={{ width: 30, height: 30, borderRadius: 9, background: "var(--lime)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Shield size={14} style={{ color: "#0D0D0D" }} />
+            <div style={{ width: 30, height: 30, borderRadius: 9, overflow: "hidden" }}>
+              <Image src="/logo.png" alt="CipherDesk" width={30} height={30} style={{ objectFit: "cover", borderRadius: 9 }} />
             </div>
             <span style={{ fontSize: 15, fontWeight: 800, fontFamily: "'Plus Jakarta Sans',sans-serif", color: "#fff" }}>CipherDesk</span>
           </Link>
 
           <div style={{ display: "flex", alignItems: "center", gap: 24, flexWrap: "wrap" }}>
-            {["Privacy Policy", "Security", "Terms", "Contact", "Docs"].map(l => (
-              <a key={l} href="#" style={{ fontSize: 13, color: "#4A4740", textDecoration: "none", transition: "color .15s" }}
+            {([
+              { label: "Privacy Policy", href: "/security#privacy" },
+              { label: "Security", href: "#security" },
+              { label: "Terms", href: "/security#terms" },
+              { label: "Contact", href: "mailto:hello@cipherdesk.io" },
+              { label: "Docs", href: "#features" },
+            ] as const).map(l => (
+              <a key={l.label} href={l.href} style={{ fontSize: 13, color: "#4A4740", textDecoration: "none", transition: "color .15s" }}
                 onMouseEnter={e => (e.target as HTMLElement).style.color = "#A8A49C"}
-                onMouseLeave={e => (e.target as HTMLElement).style.color = "#4A4740"}>{l}</a>
+                onMouseLeave={e => (e.target as HTMLElement).style.color = "#4A4740"}>{l.label}</a>
             ))}
           </div>
 

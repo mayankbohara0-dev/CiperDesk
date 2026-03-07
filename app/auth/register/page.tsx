@@ -62,11 +62,13 @@ export default function RegisterPage() {
             <div style={{
                 width: 420, flexShrink: 0, background: "#0D0D0D",
                 display: "flex", flexDirection: "column", padding: 48,
+                justifyContent: "space-between",
                 position: "relative", overflow: "hidden",
             }}>
-                <div style={{ position: "absolute", bottom: "10%", right: "-20%", width: 300, height: 300, borderRadius: "50%", background: "radial-gradient(circle, rgba(170,239,69,.2) 0%, transparent 70%)", filter: "blur(40px)" }} />
+                <div style={{ position: "absolute", top: "30%", right: "-20%", width: 350, height: 350, borderRadius: "50%", background: "radial-gradient(circle, rgba(170,239,69,.25) 0%, transparent 70%)", filter: "blur(50px)" }} />
+                <div style={{ position: "absolute", bottom: "10%", left: "10%", width: 200, height: 200, borderRadius: "50%", background: "radial-gradient(circle, rgba(170,239,69,.1) 0%, transparent 70%)", filter: "blur(40px)" }} />
 
-                <Link href="/" style={{ display: "inline-flex", alignItems: "center", gap: 10, textDecoration: "none", marginBottom: "auto" }}>
+                <Link href="/" style={{ display: "inline-flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
                     <div style={{ width: 34, height: 34, borderRadius: 10, background: "#AAEF45", display: "flex", alignItems: "center", justifyContent: "center" }}>
                         <Shield size={16} style={{ color: "#0D0D0D" }} />
                     </div>
@@ -74,20 +76,20 @@ export default function RegisterPage() {
                 </Link>
 
                 <div style={{ position: "relative" }}>
-                    <h2 style={{ fontSize: "1.9rem", fontWeight: 900, fontFamily: "'Plus Jakarta Sans',sans-serif", color: "#fff", letterSpacing: "-.03em", marginBottom: 20, lineHeight: 1.1 }}>
+                    <h2 style={{ fontSize: "1.9rem", fontWeight: 900, fontFamily: "'Plus Jakarta Sans',sans-serif", color: "#fff", letterSpacing: "-.03em", marginBottom: 24, lineHeight: 1.1 }}>
                         Keys generated locally.<br />Server sees nothing.
                     </h2>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                         {[
                             { icon: Lock, text: "Ed25519 signing keypair generated in your browser" },
                             { icon: Shield, text: "X25519 key exchange keypair for encrypted sessions" },
                             { icon: Check, text: "Private keys never leave your device — ever" },
                         ].map(({ icon: Icon, text }) => (
                             <div key={text} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                                <div style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(170,239,69,.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                                    <Icon size={13} style={{ color: "#AAEF45" }} />
+                                <div style={{ width: 30, height: 30, borderRadius: 9, background: "rgba(170,239,69,.15)", border: "1px solid rgba(170,239,69,.2)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                                    <Icon size={14} style={{ color: "#AAEF45" }} />
                                 </div>
-                                <span style={{ fontSize: 13, color: "#4A4740", lineHeight: 1.5, marginTop: 5 }}>{text}</span>
+                                <span style={{ fontSize: 13.5, color: "#9CA3AF", lineHeight: 1.6, marginTop: 4 }}>{text}</span>
                             </div>
                         ))}
                     </div>

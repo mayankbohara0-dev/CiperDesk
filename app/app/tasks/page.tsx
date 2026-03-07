@@ -5,7 +5,7 @@ import {
     Plus, Lock, List, Columns, Filter, Search,
     Circle, Clock, CheckCircle, MoreHorizontal, Calendar, MessageSquare, Trash2
 } from "lucide-react";
-import { useTasks, useUser, type Task } from "@/lib/hooks";
+import { useTasks, useUser, useMembers, sendTaskDueNotification, type Task } from "@/lib/hooks";
 
 type Priority = "high" | "medium" | "low";
 type Status = "todo" | "in_progress" | "done";
@@ -111,12 +111,22 @@ export default function TasksPage() {
     const [search, setSearch] = useState("");
     const [isCreating, setIsCreating] = useState(false);
     const [newTitle, setNewTitle] = useState("");
+    const [newPriority, setNewPriority] = useState<"low" | "medium" | "high">("medium");
+    const [newDue, setNewDue] = useState("");
+    const [dragId, setDragId] = useState<string | null>(null);
+    const { members } = useMembers();
 
     const handleCreate = async () => {
         if (!newTitle.trim() || !user) return;
         setIsCreating(true);
-        await createTask({ title: newTitle.trim(), status: "todo", priority: "medium" }, user.id);
+        const created = { title: newTitle.trim(), status: "todo" as const, priority: newPriority, due_date: newDue || undefined };
+        await createTask(created, user.id);
+        // Fire due-date notification if task has a due date
+        if (newDue) {
+            await sendTaskDueNotification({ id: "pending", title: newTitle.trim(), assignee_id: user.id, due_date: newDue });
+        }
         setNewTitle("");
+        setNewDue("");
         setIsCreating(false);
     };
 
@@ -154,7 +164,21 @@ export default function TasksPage() {
                     </div>
 
                     <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                        <input className="input-field" style={{ paddingTop: 8, paddingBottom: 8, fontSize: 13, width: 220, margin: 0 }} placeholder="Quick add task…" value={newTitle} onChange={e => setNewTitle(e.target.value)} onKeyDown={e => e.key === "Enter" && handleCreate()} />
+                        <select
+                            value={newPriority}
+                            onChange={e => setNewPriority(e.target.value as "low" | "medium" | "high")}
+                            style={{ fontSize: 12, padding: "7px 10px", borderRadius: 9, border: "1.5px solid #E8E4DC", outline: "none", background: "#fff", fontFamily: "Inter,sans-serif", color: "#0D0D0D", cursor: "pointer" }}>
+                            <option value="low">Low</option>
+                            <option value="medium">Medium</option>
+                            <option value="high">High</option>
+                        </select>
+                        <input
+                            type="date"
+                            value={newDue}
+                            onChange={e => setNewDue(e.target.value)}
+                            style={{ fontSize: 12, padding: "7px 10px", borderRadius: 9, border: "1.5px solid #E8E4DC", outline: "none", background: "#fff", fontFamily: "Inter,sans-serif", color: "#0D0D0D" }}
+                        />
+                        <input className="input-field" style={{ paddingTop: 8, paddingBottom: 8, fontSize: 13, width: 200, margin: 0 }} placeholder="Quick add task…" value={newTitle} onChange={e => setNewTitle(e.target.value)} onKeyDown={e => e.key === "Enter" && handleCreate()} />
                         <button className="btn-primary" style={{ padding: "8px 16px" }} onClick={handleCreate} disabled={!newTitle.trim() || isCreating || !user}>
                             <Plus size={14} /> Add
                         </button>
@@ -173,7 +197,17 @@ export default function TasksPage() {
                         {COLUMNS.map(col => {
                             const colTasks = filtered.filter(t => t.status === col.status);
                             return (
-                                <div key={col.status} style={{ width: 300, flexShrink: 0, display: "flex", flexDirection: "column" }}>
+                                <div key={col.status} style={{ width: 300, flexShrink: 0, display: "flex", flexDirection: "column" }}
+                                    onDragOver={e => { e.preventDefault(); (e.currentTarget as HTMLElement).style.background = "rgba(170,239,69,.04)"; }}
+                                    onDragLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+                                    onDrop={e => {
+                                        e.preventDefault();
+                                        (e.currentTarget as HTMLElement).style.background = "transparent";
+                                        if (dragId && dragId !== col.status) {
+                                            updateStatus(dragId, col.status);
+                                            setDragId(null);
+                                        }
+                                    }}>
                                     {/* Column header */}
                                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14, padding: "0 4px" }}>
                                         <div style={{ width: 8, height: 8, borderRadius: "50%", background: COL_DOT[col.status] }} />
@@ -182,7 +216,14 @@ export default function TasksPage() {
                                     </div>
 
                                     <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 10, overflowY: "auto", paddingBottom: 40 }}>
-                                        {colTasks.map(task => <TaskCard key={task.id} task={task} onStatusChange={updateStatus} onDelete={deleteTask} />)}
+                                        {colTasks.map(task => (
+                                            <div key={task.id} draggable
+                                                onDragStart={e => { setDragId(task.id); e.dataTransfer.effectAllowed = "move"; }}
+                                                onDragEnd={() => setDragId(null)}
+                                                style={{ opacity: dragId === task.id ? 0.5 : 1, transition: "opacity .15s", cursor: "grab" }}>
+                                                <TaskCard task={task} onStatusChange={updateStatus} onDelete={deleteTask} />
+                                            </div>
+                                        ))}
                                         {colTasks.length === 0 && (
                                             <div style={{ height: 80, border: "2px dashed #E8E4DC", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center" }}>
                                                 <span style={{ fontSize: 12, color: "#C8C4BC" }}>Empty</span>

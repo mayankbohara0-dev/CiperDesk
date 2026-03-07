@@ -97,7 +97,12 @@ export default function LoginPage() {
                             <div>
                                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
                                     <label style={{ fontSize: 14, fontWeight: 600, color: "#2D2D2D" }}>Password</label>
-                                    <a href="#" style={{ fontSize: 13, color: "#6B675E", textDecoration: "none" }}>Forgot password?</a>
+                                    <button type="button" style={{ fontSize: 13, color: "#6B675E", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+                                        onClick={async () => {
+                                            if (!email) { setError("Enter your email first, then click Forgot password."); return; }
+                                            await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/auth/login` });
+                                            setError(""); alert(`Password reset email sent to ${email}`);
+                                        }}>Forgot password?</button>
                                 </div>
                                 <div style={{ position: "relative" }}>
                                     <input id="password" type={showPw ? "text" : "password"} className="input-field" style={{ paddingRight: 44 }}

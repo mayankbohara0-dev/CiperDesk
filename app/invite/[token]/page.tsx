@@ -10,7 +10,6 @@ import {
     Users,
     KeyRound,
     ArrowRight,
-    Building2,
     Clock,
 } from "lucide-react";
 
@@ -47,102 +46,143 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
     };
 
     return (
-        <div className="min-h-screen bg-dark grid-pattern flex items-center justify-center px-6 py-12">
-            <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary-500/6 rounded-full blur-3xl pointer-events-none" />
+        <div style={{
+            minHeight: "100vh",
+            background: "var(--cream)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "24px",
+            position: "relative",
+            overflow: "hidden",
+            fontFamily: "Inter, sans-serif",
+        }}>
+            {/* Lime blob background */}
+            <div style={{
+                position: "fixed", top: "30%", left: "50%", transform: "translateX(-50%)",
+                width: 500, height: 500, borderRadius: "50%",
+                background: "radial-gradient(circle, rgba(170,239,69,.3) 0%, transparent 70%)",
+                pointerEvents: "none", filter: "blur(80px)",
+            }} />
 
-            <div className="relative w-full max-w-md animate-in">
+            <div className="animate-in" style={{ position: "relative", width: "100%", maxWidth: 440 }}>
+
                 {/* Logo */}
-                <div className="text-center mb-8">
-                    <Link href="/" className="inline-flex items-center gap-2.5 mb-6">
-                        <div className="w-10 h-10 rounded-xl bg-primary-500 flex items-center justify-center shadow-glow-primary">
-                            <Shield size={20} className="text-white" />
+                <div style={{ textAlign: "center", marginBottom: 32 }}>
+                    <Link href="/" style={{
+                        display: "inline-flex", alignItems: "center", gap: 10, textDecoration: "none",
+                    }}>
+                        <div style={{
+                            width: 40, height: 40, borderRadius: 12, background: "#0D0D0D",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                        }}>
+                            <Shield size={20} style={{ color: "#AAEF45" }} />
                         </div>
-                        <span className="text-xl font-bold text-slate-100">
-                            Cipher<span className="text-gradient">Desk</span>
+                        <span style={{ fontSize: 20, fontWeight: 800, fontFamily: "'Plus Jakarta Sans', sans-serif", color: "#0D0D0D", letterSpacing: "-.02em" }}>
+                            CipherDesk
                         </span>
                     </Link>
                 </div>
 
+                {/* ── Step: Review ── */}
                 {step === "review" && (
                     <>
-                        <div className="text-center mb-6">
-                            <h1 className="text-2xl font-bold text-slate-100">You&apos;re invited!</h1>
-                            <p className="text-sm text-slate-400 mt-2">
+                        <div style={{ textAlign: "center", marginBottom: 24 }}>
+                            <h1 style={{ fontSize: 26, fontWeight: 900, fontFamily: "'Plus Jakarta Sans', sans-serif", color: "#0D0D0D", letterSpacing: "-.03em", marginBottom: 8 }}>
+                                You&apos;re invited!
+                            </h1>
+                            <p style={{ fontSize: 14, color: "#6B675E" }}>
                                 You&apos;ve been invited to join an encrypted workspace.
                             </p>
                         </div>
 
-                        <div className="card space-y-5">
+                        <div className="card" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
                             {/* Workspace info */}
-                            <div className="flex items-center gap-4 p-4 rounded-xl bg-dark border border-surface-border">
-                                <div className="w-12 h-12 rounded-xl bg-primary-500 flex items-center justify-center shadow-glow-primary">
-                                    <Shield size={22} className="text-white" />
+                            <div style={{
+                                display: "flex", alignItems: "center", gap: 14, padding: "14px 16px",
+                                borderRadius: 14, background: "var(--cream)", border: "1.5px solid var(--grey-2)",
+                            }}>
+                                <div style={{
+                                    width: 48, height: 48, borderRadius: 14, background: "#0D0D0D",
+                                    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                                }}>
+                                    <Shield size={22} style={{ color: "#AAEF45" }} />
                                 </div>
                                 <div>
-                                    <p className="text-base font-bold text-slate-100">{WORKSPACE.name}</p>
-                                    <p className="text-xs text-slate-400">Invited by {WORKSPACE.admin}</p>
-                                    <div className="flex items-center gap-3 mt-1">
-                                        <span className="flex items-center gap-1 text-xs text-slate-500">
-                                            <Users size={11} />
-                                            {WORKSPACE.members} members
+                                    <p style={{ fontSize: 15, fontWeight: 800, fontFamily: "'Plus Jakarta Sans', sans-serif", color: "#0D0D0D" }}>{WORKSPACE.name}</p>
+                                    <p style={{ fontSize: 12, color: "#A8A49C", marginTop: 2 }}>Invited by {WORKSPACE.admin}</p>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 4 }}>
+                                        <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: "#6B675E" }}>
+                                            <Users size={11} /> {WORKSPACE.members} members
                                         </span>
-                                        <span className="badge-primary text-xs py-0.5">{WORKSPACE.plan}</span>
+                                        <span className="badge-lime badge" style={{ fontSize: 10, padding: "2px 8px" }}>{WORKSPACE.plan}</span>
                                     </div>
                                 </div>
                             </div>
 
                             {/* What happens */}
                             <div>
-                                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">What happens when you join</p>
-                                <ul className="space-y-3">
+                                <p style={{ fontSize: 11, fontWeight: 700, color: "#A8A49C", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 12 }}>
+                                    What happens when you join
+                                </p>
+                                <ul style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                                     {[
-                                        { icon: KeyRound, text: "A new Ed25519/X25519 keypair is generated locally on your device", color: "text-accent-400" },
-                                        { icon: Lock, text: "The workspace key is encrypted with your public key and sent to you", color: "text-primary-400" },
-                                        { icon: Shield, text: "Your private key never leaves this device. The server cannot read your messages.", color: "text-green-400" },
+                                        { icon: KeyRound, text: "A new Ed25519/X25519 keypair is generated locally on your device", color: "#0D0D0D" },
+                                        { icon: Lock, text: "The workspace key is encrypted with your public key and sent to you", color: "#0D0D0D" },
+                                        { icon: Shield, text: "Your private key never leaves this device. The server cannot read your messages.", color: "#2E7D32" },
                                     ].map(({ icon: Icon, text, color }) => (
-                                        <li key={text} className="flex items-start gap-2.5">
-                                            <Icon size={14} className={`${color} flex-shrink-0 mt-0.5`} />
-                                            <span className="text-xs text-slate-400 leading-relaxed">{text}</span>
+                                        <li key={text} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                                            <Icon size={14} style={{ color, flexShrink: 0, marginTop: 2 }} />
+                                            <span style={{ fontSize: 13, color: "#6B675E", lineHeight: 1.5 }}>{text}</span>
                                         </li>
                                     ))}
                                 </ul>
                             </div>
 
-                            {/* Invite token */}
-                            <div className="px-3 py-2 rounded-lg bg-dark border border-surface-border font-mono text-xs text-slate-500 truncate">
-                                Invite token: <span className="text-accent-400">{token.slice(0, 8)}…{token.slice(-8)}</span>
+                            {/* Token badge */}
+                            <div style={{
+                                padding: "8px 14px", borderRadius: 10,
+                                background: "var(--cream)", border: "1.5px solid var(--grey-2)",
+                                fontFamily: "monospace", fontSize: 12, color: "#A8A49C",
+                                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                            }}>
+                                Token: <span style={{ color: "#0D0D0D", fontWeight: 700 }}>{token.slice(0, 8)}…{token.slice(-8)}</span>
                             </div>
 
-                            <div className="flex items-center gap-1 text-xs text-slate-500">
-                                <Clock size={11} className="text-yellow-400" />
-                                Invite link expires in <span className="text-yellow-400 font-semibold ml-1">47h 22m</span>
+                            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#A8A49C" }}>
+                                <Clock size={11} style={{ color: "#F59E0B" }} />
+                                Invite link expires in <span style={{ color: "#F59E0B", fontWeight: 700, marginLeft: 2 }}>47h 22m</span>
                             </div>
 
-                            <div className="flex gap-3">
-                                <Link href="/" className="btn-secondary flex-1 justify-center text-sm">
+                            <div style={{ display: "flex", gap: 10 }}>
+                                <Link href="/" className="btn-secondary" style={{ flex: 1, justifyContent: "center", fontSize: 14 }}>
                                     Decline
                                 </Link>
-                                <button onClick={handleAccept} className="btn-primary flex-1 justify-center text-sm">
-                                    Accept Invite
-                                    <ArrowRight size={15} />
+                                <button onClick={handleAccept} className="btn-primary" style={{ flex: 1, justifyContent: "center", fontSize: 14 }}>
+                                    Accept Invite <ArrowRight size={15} />
                                 </button>
                             </div>
                         </div>
                     </>
                 )}
 
+                {/* ── Step: Generating keypair ── */}
                 {step === "keypair" && (
-                    <div className="card text-center space-y-5">
-                        <div className="w-14 h-14 rounded-2xl bg-primary-500/10 border border-primary-500/20 flex items-center justify-center mx-auto">
-                            <KeyRound size={26} className="text-primary-400 animate-pulse" />
+                    <div className="card" style={{ textAlign: "center", display: "flex", flexDirection: "column", gap: 20 }}>
+                        <div style={{
+                            width: 56, height: 56, borderRadius: 18, background: "#F5F0E8",
+                            border: "1.5px solid var(--grey-2)",
+                            display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto",
+                        }}>
+                            <KeyRound size={26} style={{ color: "#0D0D0D", animation: "spin 1.5s linear infinite" }} />
                         </div>
                         <div>
-                            <h2 className="text-lg font-bold text-slate-100 mb-1">
+                            <h2 style={{ fontSize: 18, fontWeight: 800, fontFamily: "'Plus Jakarta Sans', sans-serif", color: "#0D0D0D", marginBottom: 4 }}>
                                 {progress < 40 ? "Generating your keypair…" : progress < 80 ? "Encrypting workspace key…" : "Distributing keys…"}
                             </h2>
-                            <p className="text-xs text-slate-400 font-mono">{progress}% complete</p>
+                            <p style={{ fontSize: 12, color: "#A8A49C", fontFamily: "monospace" }}>{progress}% complete</p>
                         </div>
-                        <div className="space-y-2.5">
+                        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                             {[
                                 { label: "Generate Ed25519 signing key", done: progress >= 20 },
                                 { label: "Generate X25519 key exchange key", done: progress >= 40 },
@@ -150,49 +190,62 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
                                 { label: "Decrypt & store locally", done: progress >= 85 },
                                 { label: "Sync complete", done: progress >= 100 },
                             ].map((s) => (
-                                <div key={s.label} className="flex items-center gap-2.5 text-left">
-                                    <div className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${s.done ? "bg-green-500" : "bg-surface-raised border border-surface-border"}`}>
-                                        {s.done && <Check size={10} className="text-white" />}
+                                <div key={s.label} style={{ display: "flex", alignItems: "center", gap: 10, textAlign: "left" }}>
+                                    <div style={{
+                                        width: 18, height: 18, borderRadius: "50%",
+                                        display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                                        background: s.done ? "#AAEF45" : "var(--grey-2)",
+                                        border: `1.5px solid ${s.done ? "#8ED630" : "var(--grey-3)"}`,
+                                        transition: "all .3s",
+                                    }}>
+                                        {s.done && <Check size={10} style={{ color: "#0D0D0D" }} />}
                                     </div>
-                                    <span className={`text-xs font-mono ${s.done ? "text-slate-300" : "text-slate-500"}`}>{s.label}</span>
+                                    <span style={{ fontSize: 12, fontFamily: "monospace", color: s.done ? "#0D0D0D" : "#A8A49C" }}>{s.label}</span>
                                 </div>
                             ))}
                         </div>
-                        <div className="w-full h-1.5 bg-surface-border rounded-full overflow-hidden">
-                            <div
-                                className="h-full bg-primary-500 rounded-full transition-all duration-300"
-                                style={{ width: `${progress}%` }}
-                            />
+                        {/* Progress bar */}
+                        <div style={{ width: "100%", height: 6, borderRadius: 99, background: "var(--grey-2)", overflow: "hidden" }}>
+                            <div style={{
+                                height: "100%", background: "#AAEF45", borderRadius: 99,
+                                width: `${progress}%`, transition: "width .3s ease",
+                            }} />
                         </div>
                     </div>
                 )}
 
+                {/* ── Step: Done ── */}
                 {step === "done" && (
-                    <div className="card text-center space-y-5">
-                        <div className="w-16 h-16 rounded-2xl bg-green-500/10 border border-green-500/20 flex items-center justify-center mx-auto">
-                            <Check size={30} className="text-green-400" />
+                    <div className="card" style={{ textAlign: "center", display: "flex", flexDirection: "column", gap: 20 }}>
+                        <div style={{
+                            width: 64, height: 64, borderRadius: 20, background: "#F0FDF4",
+                            border: "1.5px solid #BBF7D0",
+                            display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto",
+                        }}>
+                            <Check size={30} style={{ color: "#16A34A" }} />
                         </div>
                         <div>
-                            <h2 className="text-xl font-bold text-slate-100 mb-1">You&apos;re in! 🔐</h2>
-                            <p className="text-sm text-slate-400">
-                                Welcome to <span className="text-slate-200 font-semibold">{WORKSPACE.name}</span>. Your keys are set up and secure.
+                            <h2 style={{ fontSize: 22, fontWeight: 900, fontFamily: "'Plus Jakarta Sans', sans-serif", color: "#0D0D0D", marginBottom: 8 }}>
+                                You&apos;re in! 🔐
+                            </h2>
+                            <p style={{ fontSize: 14, color: "#6B675E" }}>
+                                Welcome to <span style={{ fontWeight: 700, color: "#0D0D0D" }}>{WORKSPACE.name}</span>. Your keys are set up and secure.
                             </p>
                         </div>
-                        <div className="space-y-2 text-left">
+                        <div style={{ display: "flex", flexDirection: "column", gap: 8, textAlign: "left" }}>
                             {[
                                 "Keypair generated and stored locally",
                                 "Workspace key decrypted and cached",
                                 "E2E encryption active for all channels",
                             ].map((s) => (
-                                <div key={s} className="flex items-center gap-2">
-                                    <Check size={13} className="text-green-400 flex-shrink-0" />
-                                    <span className="text-xs text-slate-400">{s}</span>
+                                <div key={s} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                    <Check size={13} style={{ color: "#16A34A", flexShrink: 0 }} />
+                                    <span style={{ fontSize: 13, color: "#6B675E" }}>{s}</span>
                                 </div>
                             ))}
                         </div>
-                        <Link href="/app/chat/general" className="btn-primary w-full justify-center">
-                            Open Workspace
-                            <ArrowRight size={15} />
+                        <Link href="/app/chat/general" className="btn-primary" style={{ justifyContent: "center" }}>
+                            Open Workspace <ArrowRight size={15} />
                         </Link>
                     </div>
                 )}

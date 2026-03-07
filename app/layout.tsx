@@ -2,6 +2,10 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ??
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000")
+  ),
   title: "CipherDesk — Encrypted Startup Workspace",
   description:
     "A secure, end-to-end encrypted workspace for small startups. Real-time messaging, task boards, and file vault — all zero-knowledge, end-to-end encrypted.",
@@ -10,10 +14,16 @@ export const metadata: Metadata = {
     "startup collaboration", "zero trust", "private messaging",
     "zero knowledge", "AES-256", "Signal protocol",
   ],
+  icons: {
+    icon: "/logo.png",
+    apple: "/apple-touch-icon.png",
+    shortcut: "/logo.png",
+  },
   openGraph: {
     title: "CipherDesk — Encrypted Startup Workspace",
     description: "Real-time encrypted chat, tasks & file vault. Zero-knowledge, Signal-grade E2EE. For privacy-first startup teams.",
     type: "website",
+    images: ["/logo.png"],
   },
   manifest: "/manifest.json",
   appleWebApp: {
@@ -22,6 +32,7 @@ export const metadata: Metadata = {
     title: "CipherDesk",
   },
 };
+
 
 export const viewport = {
   themeColor: "#AAEF45",

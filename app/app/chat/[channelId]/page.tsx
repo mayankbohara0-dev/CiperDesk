@@ -4,9 +4,9 @@ import { useState, useRef, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
     Hash, Shield, Lock, Send, Smile, Paperclip, MoreHorizontal,
-    Check, Search, Pin, Trash2, X,
+    Check, Search, Pin, Trash2, X, Pencil,
 } from "lucide-react";
-import { useUser, useMessages, useChannels, useMembers } from "@/lib/hooks";
+import { useUser, useMessages, useChannels, useMembers, sendMentionNotification } from "@/lib/hooks";
 import { supabase } from "@/lib/supabase/client";
 
 const REACTIONS = ["👍", "❤️", "🔥", "✅", "😂", "🎉"];
@@ -58,10 +58,13 @@ export default function ChatPage() {
     const [input, setInput] = useState("");
     const [sending, setSending] = useState(false);
     const [reacting, setReacting] = useState<string | null>(null);
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [editContent, setEditContent] = useState("");
     const [search, setSearch] = useState("");
     const [showSearch, setShowSearch] = useState(false);
     const [reactions, setReactions] = useState<Record<string, string[]>>({});
     const [typingUsers, setTypingUsers] = useState<Record<string, { name: string, exp: number }>>({});
+    const [mentionQuery, setMentionQuery] = useState<string | null>(null);
     const bottomRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -132,14 +135,70 @@ export default function ChatPage() {
     const handleSend = async () => {
         if (!input.trim() || !user || !resolvedChannelId || sending) return;
         setSending(true);
-        await sendMessage(user.id, input);
+        const content = input.trim();
+        await sendMessage(user.id, content);
+
+        // Detect @mentions and notify mentioned members
+        const senderName = profile?.full_name || profile?.email || "Someone";
+        const channelName = currentChannel?.name ?? channelId;
+        const mentions = content.match(/@([\w\s]+?)(?=\s|$)/g) ?? [];
+        for (const mention of mentions) {
+            const mentionName = mention.slice(1).trim().toLowerCase();
+            const mentionedMember = members.find(m =>
+                (m.full_name || "").toLowerCase().startsWith(mentionName) ||
+                (m.email || "").toLowerCase().startsWith(mentionName)
+            );
+            if (mentionedMember && mentionedMember.id !== user.id) {
+                await sendMentionNotification(mentionedMember.id, senderName, channelName, content);
+            }
+        }
+
         setInput("");
         setSending(false);
+        setMentionQuery(null);
         inputRef.current?.focus();
     };
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
+        if (e.key === "Escape") { setMentionQuery(null); }
+    };
+
+    const handleInputChange = (val: string) => {
+        setInput(val);
+        // Detect @mention trigger
+        const atIndex = val.lastIndexOf("@");
+        if (atIndex !== -1 && atIndex === val.length - 1) {
+            setMentionQuery("");
+        } else if (atIndex !== -1 && val.slice(atIndex + 1).match(/^[\w\s]{0,20}$/) && mentionQuery !== null) {
+            setMentionQuery(val.slice(atIndex + 1));
+        } else {
+            setMentionQuery(null);
+        }
+    };
+
+    const mentionSuggestions = mentionQuery !== null
+        ? members.filter(m => {
+            const q = mentionQuery.toLowerCase();
+            return (m.full_name || "").toLowerCase().includes(q) || (m.email || "").toLowerCase().includes(q);
+        }).slice(0, 5)
+        : [];
+
+    const insertMention = (m: typeof members[0]) => {
+        const atIndex = input.lastIndexOf("@");
+        const mentionText = m.full_name || m.email;
+        setInput(input.slice(0, atIndex) + `@${mentionText} `);
+        setMentionQuery(null);
+        inputRef.current?.focus();
+    };
+
+    const handleEditSave = async (msgId: string) => {
+        if (!editContent.trim()) return;
+        const key = await (await import("@/lib/crypto")).CryptoManager.getOrGenerateLocalKey();
+        const encrypted = await (await import("@/lib/crypto")).CryptoManager.encrypt(editContent.trim(), key);
+        await supabase.from("messages").update({ content: encrypted }).eq("id", msgId);
+        setEditingId(null);
+        setEditContent("");
     };
 
     const toggleReaction = (msgId: string, emoji: string) => {
@@ -259,7 +318,25 @@ export default function ChatPage() {
                                         <span style={{ fontSize: 11, color: "#C8C4BC" }}>{time}</span>
                                     </div>
                                 )}
-                                <p style={{ fontSize: 14, color: "#2D2D2D", lineHeight: 1.55, wordBreak: "break-word" }}>{msg.content}</p>
+                                {editingId === msg.id ? (
+                                    <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 4 }}>
+                                        <input
+                                            autoFocus
+                                            value={editContent}
+                                            onChange={e => setEditContent(e.target.value)}
+                                            onKeyDown={e => { if (e.key === "Enter") handleEditSave(msg.id); if (e.key === "Escape") { setEditingId(null); } }}
+                                            style={{ flex: 1, fontSize: 14, padding: "5px 10px", borderRadius: 8, border: "1.5px solid #0D0D0D", outline: "none", fontFamily: "Inter,sans-serif" }}
+                                        />
+                                        <button onClick={() => handleEditSave(msg.id)} style={{ padding: "4px 10px", borderRadius: 7, background: "#AAEF45", border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700 }}>Save</button>
+                                        <button onClick={() => setEditingId(null)} style={{ padding: "4px 8px", borderRadius: 7, background: "#F5F0E8", border: "1px solid #E8E4DC", cursor: "pointer", fontSize: 12 }}>Cancel</button>
+                                    </div>
+                                ) : (
+                                    <p style={{ fontSize: 14, color: "#2D2D2D", lineHeight: 1.55, wordBreak: "break-word" }}>
+                                        {msg.content.split(/(@\w[\w\s]*)/g).map((part, i) =>
+                                            part.startsWith("@") ? <mark key={i} style={{ background: "#D4F7A0", borderRadius: 3, padding: "0 2px", color: "#2E7D32", fontWeight: 700 }}>{part}</mark> : part
+                                        )}
+                                    </p>
+                                )}
                                 {msgReactions.length > 0 && (
                                     <div style={{ display: "flex", gap: 4, marginTop: 4, flexWrap: "wrap" }}>
                                         {msgReactions.map(emoji => (
@@ -274,10 +351,18 @@ export default function ChatPage() {
 
                             {/* Actions (hover) */}
                             <div style={{ display: "flex", gap: 4, position: "absolute", right: 8, top: 4 }}>
+                                {/* Timestamp on hover */}
+                                <span style={{ fontSize: 10, color: "#C8C4BC", alignSelf: "center", marginRight: 4, fontFamily: "monospace" }}>{time}</span>
                                 <button onClick={() => setReacting(reacting === msg.id ? null : msg.id)}
                                     style={{ width: 28, height: 28, borderRadius: 8, border: "1.5px solid #E8E4DC", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#6B675E" }}>
                                     <Smile size={13} />
                                 </button>
+                                {isOwn && (
+                                    <button onClick={() => { setEditingId(msg.id); setEditContent(msg.content); }}
+                                        style={{ width: 28, height: 28, borderRadius: 8, border: "1.5px solid #E8E4DC", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#6B675E" }}>
+                                        <Pencil size={12} />
+                                    </button>
+                                )}
                                 {isOwn && (
                                     <button onClick={() => deleteMessage(msg.id)}
                                         style={{ width: 28, height: 28, borderRadius: 8, border: "1.5px solid #FECACA", background: "#FEE2E2", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#DC2626" }}>
@@ -317,16 +402,35 @@ export default function ChatPage() {
             )}
 
             {/* Composer */}
-            <div style={{ padding: "12px 20px", borderTop: "1.5px solid #E8E4DC", background: "#fff", flexShrink: 0 }}>
+            <div style={{ padding: "12px 20px", borderTop: "1.5px solid #E8E4DC", background: "#fff", flexShrink: 0, position: "relative" }}>
+                {/* @mention autocomplete */}
+                {mentionSuggestions.length > 0 && (
+                    <div style={{ position: "absolute", bottom: "100%", left: 20, right: 20, background: "#fff", border: "1.5px solid #E8E4DC", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,.12)", overflow: "hidden", marginBottom: 4 }}>
+                        {mentionSuggestions.map(m => (
+                            <button key={m.id} onClick={() => insertMention(m)}
+                                style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", border: "none", background: "transparent", cursor: "pointer", textAlign: "left", transition: "background .1s" }}
+                                onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "#F5F0E8"}
+                                onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "transparent"}>
+                                <div style={{ width: 26, height: 26, borderRadius: 7, background: "#0D0D0D", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 800, color: "#AAEF45" }}>
+                                    {(m.full_name || m.email).slice(0, 2).toUpperCase()}
+                                </div>
+                                <div>
+                                    <div style={{ fontSize: 13, fontWeight: 600, color: "#0D0D0D" }}>{m.full_name || m.email}</div>
+                                    <div style={{ fontSize: 11, color: "#A8A49C" }}>{m.role}</div>
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+                )}
                 <div style={{ display: "flex", gap: 10, alignItems: "flex-end", background: "#F5F0E8", border: "1.5px solid #E8E4DC", borderRadius: 14, padding: "8px 12px", transition: "border-color .15s" }}
                     onFocusCapture={e => (e.currentTarget as HTMLElement).style.borderColor = "#0D0D0D"}
                     onBlurCapture={e => (e.currentTarget as HTMLElement).style.borderColor = "#E8E4DC"}>
                     <button style={{ flexShrink: 0, width: 28, height: 28, borderRadius: 8, border: "none", background: "none", cursor: "pointer", color: "#A8A49C", display: "flex", alignItems: "center", justifyContent: "center" }}>
                         <Paperclip size={15} />
                     </button>
-                    <textarea ref={inputRef} placeholder={`Message #${currentChannel?.name ?? channelId}…`}
+                    <textarea ref={inputRef} placeholder={`Message #${currentChannel?.name ?? channelId}… (@ to mention)`}
                         value={input} onChange={e => {
-                            setInput(e.target.value);
+                            handleInputChange(e.target.value);
                             if (e.target.value.length === 1 && resolvedChannelId && user) {
                                 supabase.channel(`typing-${resolvedChannelId}`).send({ type: "broadcast", event: "typing", payload: { userId: user.id, name: profile?.full_name || profile?.email || "Someone" } });
                             }

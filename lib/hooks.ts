@@ -591,3 +591,85 @@ export function useWorkspaceSettings() {
     return { retention, loading, updateRetention };
 }
 
+// ─── Presence (online users) ──────────────────────────────────
+export function usePresence(userId: string | undefined) {
+    const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
+
+    useEffect(() => {
+        if (!userId) return;
+        const channel = supabase.channel("presence-global", {
+            config: { presence: { key: userId } },
+        });
+
+        channel
+            .on("presence", { event: "sync" }, () => {
+                const state = channel.presenceState();
+                setOnlineUsers(Object.keys(state));
+            })
+            .subscribe(async (status) => {
+                if (status === "SUBSCRIBED") {
+                    await channel.track({ userId, online_at: new Date().toISOString() });
+                }
+            });
+
+        return () => { supabase.removeChannel(channel); };
+    }, [userId]);
+
+    return { onlineUsers, isOnline: (id: string) => onlineUsers.includes(id) };
+}
+
+// ─── Unread message counts ────────────────────────────────────
+export function useUnreadCounts(userId: string | undefined) {
+    const [lastRead, setLastRead] = useState<Record<string, string>>({});
+
+    useEffect(() => {
+        if (!userId) return;
+        try {
+            const stored = localStorage.getItem(`cd_lastread_${userId}`);
+            if (stored) setLastRead(JSON.parse(stored));
+        } catch { /* ignore */ }
+    }, [userId]);
+
+    const markChannelRead = useCallback((channelId: string) => {
+        if (!userId) return;
+        const newLastRead = { ...lastRead, [channelId]: new Date().toISOString() };
+        setLastRead(newLastRead);
+        try {
+            localStorage.setItem(`cd_lastread_${userId}`, JSON.stringify(newLastRead));
+        } catch { /* ignore */ }
+    }, [userId, lastRead]);
+
+    const getLastRead = (channelId: string) => lastRead[channelId] ?? null;
+
+    return { markChannelRead, getLastRead };
+}
+
+// ─── Task due notifications ───────────────────────────────────
+export async function sendTaskDueNotification(task: { id: string; title: string; assignee_id: string | null; due_date: string | null }) {
+    if (!task.assignee_id || !task.due_date) return;
+    const dueDate = new Date(task.due_date);
+    const now = new Date();
+    const diffDays = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (diffDays <= 1 && diffDays >= 0) {
+        await supabase.from("notifications").insert({
+            user_id: task.assignee_id,
+            type: "task_assigned",
+            title: diffDays === 0 ? `Task due today: ${task.title}` : `Task due tomorrow: ${task.title}`,
+            body: `Your task "${task.title}" is due ${diffDays === 0 ? "today" : "tomorrow"}.`,
+            action_url: "/app/tasks",
+        });
+    }
+}
+
+// ─── Create mention notification ──────────────────────────────
+export async function sendMentionNotification(mentionedUserId: string, senderName: string, channelName: string, messagePreview: string) {
+    await supabase.from("notifications").insert({
+        user_id: mentionedUserId,
+        type: "mention",
+        title: `${senderName} mentioned you in #${channelName}`,
+        body: messagePreview.slice(0, 120),
+        action_url: `/app/chat/${channelName}`,
+    });
+}
+

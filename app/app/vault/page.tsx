@@ -7,6 +7,7 @@ import {
     Shield, Plus, Eye, Share2, Clock, HardDrive,
 } from "lucide-react";
 import { useVault, useUser, type VaultFile } from "@/lib/hooks";
+import { supabase } from "@/lib/supabase/client";
 
 const FILE_ICONS: Record<string, React.ElementType> = { pdf: FileText, image: FileImage, code: FileCode, doc: FileText, zip: File };
 const FILE_STYLES: Record<string, { bg: string; color: string; border: string }> = {
@@ -49,7 +50,7 @@ function StatCard({ icon: Icon, iconBg, iconColor, value, label }: { icon: React
     );
 }
 
-function FileCard({ file, onDelete, currentUserId }: { file: VaultFile; onDelete: (id: string, userId: string) => void; currentUserId: string | undefined }) {
+function FileCard({ file, onDelete, onDownload, currentUserId }: { file: VaultFile; onDelete: (id: string, userId: string) => void; onDownload: (file: VaultFile) => void; currentUserId: string | undefined }) {
     const [hov, setHov] = useState(false);
 
     const cat = getFileTypeCategory(file.mime_type, file.name);
@@ -90,7 +91,7 @@ function FileCard({ file, onDelete, currentUserId }: { file: VaultFile; onDelete
                     <p style={{ fontSize: 11, color: "#A8A49C" }}>{date}</p>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 4, opacity: hov ? 1 : 0, transition: "opacity .15s" }}>
-                    <button style={{ width: 28, height: 28, borderRadius: 8, border: "1.5px solid #E8E4DC", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#A8A49C" }}
+                    <button onClick={() => onDownload(file)} style={{ width: 28, height: 28, borderRadius: 8, border: "1.5px solid #E8E4DC", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#A8A49C" }}
                         onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "#AAEF45"; (e.currentTarget as HTMLElement).style.color = "#0D0D0D"; }}
                         onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "#E8E4DC"; (e.currentTarget as HTMLElement).style.color = "#A8A49C"; }}>
                         <Download size={12} />
@@ -156,25 +157,51 @@ export default function VaultPage() {
         // Simulate chunk encryption visually
         const iv = setInterval(() => {
             setProgress(p => {
-                if (p >= 90) { clearInterval(iv); return 90; }
+                if (p >= 70) { clearInterval(iv); return 70; }
                 return p + 15;
             });
         }, 150);
 
-        // Upload to DB
+        // Try real Supabase Storage upload first
+        const storagePath = `${user.id}/${Date.now()}-${f.name}`;
+        const { error: storageErr } = await supabase.storage
+            .from("vault")
+            .upload(storagePath, f, { upsert: false });
+
+        const finalPath = storageErr ? `dummy/${Date.now()}-${f.name}` : storagePath;
+
+        clearInterval(iv);
+        setProgress(90);
+
+        // Upload metadata to DB
         await uploadFile({
             name: f.name,
             size_bytes: f.size,
             mime_type: f.type || "application/octet-stream",
-            storage_path: `dummy/${Date.now()}-${f.name}` // Real implementation would use supabase storage
+            storage_path: finalPath,
         }, user.id);
 
-        clearInterval(iv);
         setProgress(100);
         setTimeout(() => {
             setUploading(false);
             setProgress(0);
         }, 800);
+    };
+
+    const handleDownload = async (file: VaultFile) => {
+        if (!file.storage_path || file.storage_path.startsWith("dummy/")) {
+            alert("This file was uploaded without real storage. Re-upload to enable download.");
+            return;
+        }
+        const { data } = await supabase.storage
+            .from("vault")
+            .createSignedUrl(file.storage_path, 60);
+        if (data?.signedUrl) {
+            const a = document.createElement("a");
+            a.href = data.signedUrl;
+            a.download = file.name;
+            a.click();
+        }
     };
 
     const filtered = files.filter(f => f.name.toLowerCase().includes(search.toLowerCase()));
@@ -274,7 +301,7 @@ export default function VaultPage() {
                         </div>
                     ) : view === "grid" ? (
                         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 14 }}>
-                            {filtered.map(f => <FileCard key={f.id} file={f} onDelete={deleteFile} currentUserId={user?.id} />)}
+                            {filtered.map(f => <FileCard key={f.id} file={f} onDelete={deleteFile} onDownload={handleDownload} currentUserId={user?.id} />)}
                         </div>
                     ) : (
                         <div style={{ background: "#fff", borderRadius: 14, border: "1.5px solid #E8E4DC", overflow: "hidden" }}>
@@ -304,7 +331,7 @@ export default function VaultPage() {
                                         <span style={{ fontSize: 12, fontFamily: "monospace", color: "#6B675E" }}>{chunks}</span>
                                         <span style={{ fontSize: 12, color: "#6B675E", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{uploaderName}</span>
                                         <div style={{ display: "flex", gap: 4 }}>
-                                            <button style={{ width: 24, height: 24, borderRadius: 6, border: "1px solid #E8E4DC", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#A8A49C" }}><Download size={11} /></button>
+                                            <button onClick={() => handleDownload(file)} style={{ width: 24, height: 24, borderRadius: 6, border: "1px solid #E8E4DC", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#A8A49C" }}><Download size={11} /></button>
                                             <button onClick={(e) => { e.stopPropagation(); user && deleteFile(file.id, user.id); }} style={{ width: 24, height: 24, borderRadius: 6, border: "1px solid #E8E4DC", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#EF4444" }}><Trash2 size={11} /></button>
                                         </div>
                                     </div>

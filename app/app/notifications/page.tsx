@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     Bell, Lock, CheckSquare, MessageSquare, UserPlus, Shield,
     KeyRound, Check, Trash2, CheckCheck, Settings,
@@ -45,11 +45,32 @@ export default function NotificationsPage() {
         return n.type === filter;
     });
 
-    const dismiss = async (id: string) => {
-        // Optimistic UI handled via global hooks if possible, but for individual delete:
-        await supabase.from("notifications").delete().eq("id", id);
-        // Page reload or fetch should happen natively with realtime, but for now we rely on user action mapping.
+    const markAllAsRead = async () => {
+        const unread = notifications.filter(n => !n.is_read);
+        await Promise.all(unread.map(n => markAsRead(n.id)));
     };
+
+    const dismiss = async (id: string) => {
+        await supabase.from("notifications").delete().eq("id", id);
+    };
+
+    // Realtime subscription for new notifications
+    useEffect(() => {
+        if (!user?.id) return;
+        const channel = supabase
+            .channel(`notifs-${user.id}`)
+            .on("postgres_changes", {
+                event: "INSERT",
+                schema: "public",
+                table: "notifications",
+                filter: `user_id=eq.${user.id}`,
+            }, () => {
+                // Trigger re-fetch by marking stale (hook will handle)
+                window.dispatchEvent(new CustomEvent("notif-refresh"));
+            })
+            .subscribe();
+        return () => { supabase.removeChannel(channel); };
+    }, [user?.id]);
 
     return (
         <div style={{ height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
@@ -63,9 +84,9 @@ export default function NotificationsPage() {
                     )}
                 </div>
                 <div style={{ display: "flex", gap: 8 }}>
-                    <button onClick={clearAll}
-                        style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 9, border: "1.5px solid #E8E4DC", background: "#fff", fontSize: 12, fontWeight: 600, color: "#6B675E", cursor: "pointer" }}>
-                        <CheckCheck size={13} /> Clear all
+                    <button onClick={markAllAsRead}
+                        style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 9, border: "1.5px solid #E8E4DC", background: unreadCount > 0 ? "#AAEF45" : "#fff", fontSize: 12, fontWeight: 600, color: unreadCount > 0 ? "#0D0D0D" : "#6B675E", cursor: unreadCount > 0 ? "pointer" : "default", transition: "all .15s" }}>
+                        <CheckCheck size={13} /> Mark all read {unreadCount > 0 && `(${unreadCount})`}
                     </button>
                     <button style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 9, border: "1.5px solid #E8E4DC", background: "#fff", fontSize: 12, fontWeight: 600, color: "#6B675E", cursor: "pointer" }}>
                         <Settings size={13} /> Preferences
@@ -153,7 +174,7 @@ export default function NotificationsPage() {
                                         </div>
 
                                         {/* Dismiss */}
-                                        <button className="dismiss-btn" onClick={async (e) => { e.stopPropagation(); await dismiss(n.id); window.location.reload(); }}
+                                        <button className="dismiss-btn" onClick={async (e) => { e.stopPropagation(); await dismiss(n.id); }}
                                             style={{ opacity: 0, pointerEvents: "none", position: "absolute", right: 20, top: "50%", transform: "translateY(-50%)", padding: 6, borderRadius: 8, border: "none", background: "#fff", boxShadow: "0 2px 8px rgba(0,0,0,0.08)", cursor: "pointer", color: "#DC2626", transition: "all .15s", flexShrink: 0 }}
                                             onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#FEE2E2"; }}
                                             onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "#fff"; }}
