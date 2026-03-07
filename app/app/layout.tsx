@@ -12,19 +12,13 @@ import {
 import { useUser, useChannels, useMembers, signOut, useNotifications, usePresence } from "@/lib/hooks";
 import CmdSearch from "./components/CmdSearch";
 
-const NAV = [
+const MAIN_NAV = [
     { icon: MessageSquare, label: "Chat", href: "/app/chat/general", match: "/app/chat" },
     { icon: CheckSquare, label: "Tasks", href: "/app/tasks", match: "/app/tasks" },
     { icon: FolderLock, label: "Vault", href: "/app/vault", match: "/app/vault" },
-    { icon: Users, label: "Members", href: "/app/members", match: "/app/members" },
-    { icon: Bell, label: "Notifications", href: "/app/notifications", match: "/app/notifications" },
-    { icon: ScrollText, label: "Audit Log", href: "/app/audit", match: "/app/audit" },
-    { icon: KeyRound, label: "Keys", href: "/app/keys", match: "/app/keys" },
-    { icon: BarChart3, label: "Admin", href: "/app/admin", match: "/app/admin" },
-    { icon: Plug, label: "Integrations", href: "/app/integrations", match: "/app/integrations" },
-    { icon: ShieldCheck, label: "Compliance", href: "/app/compliance", match: "/app/compliance" },
-    { icon: Settings, label: "Settings", href: "/app/settings", match: "/app/settings" },
 ];
+
+const SETTINGS_HREF = "/app/settings";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
@@ -72,24 +66,39 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             borderRight: "1px solid var(--grey-2)",
             display: "flex", flexDirection: "column", overflow: "hidden",
         }}>
-            {/* Workspace header */}
+            {/* Workspace header & Notifications */}
             <div style={{ padding: "12px 10px", borderBottom: "1px solid var(--grey-2)" }}>
-                <button style={{
-                    width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
-                    padding: "8px 10px", borderRadius: 10, background: "transparent",
-                    border: "1.5px solid var(--grey-2)", cursor: "pointer",
-                    transition: "all .2s",
-                }}
-                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "var(--grey-1)"}
-                    onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "transparent"}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <div style={{ width: 24, height: 24, borderRadius: 7, background: "#0D0D0D", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                            <Shield size={12} style={{ color: "#AAEF45" }} />
+                <div style={{ display: "flex", gap: 6 }}>
+                    <button style={{
+                        flex: 1, display: "flex", alignItems: "center", justifyContent: "space-between",
+                        padding: "8px 10px", borderRadius: 10, background: "transparent",
+                        border: "1.5px solid var(--grey-2)", cursor: "pointer",
+                        transition: "all .2s",
+                    }}
+                        onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "var(--grey-1)"}
+                        onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "transparent"}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <div style={{ width: 24, height: 24, borderRadius: 7, background: "#0D0D0D", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                <Shield size={12} style={{ color: "#AAEF45" }} />
+                            </div>
+                            <span style={{ fontSize: 13, fontWeight: 700, fontFamily: "'Plus Jakarta Sans',sans-serif", color: "#0D0D0D", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 90 }}>{workspace}</span>
                         </div>
-                        <span style={{ fontSize: 13, fontWeight: 700, fontFamily: "'Plus Jakarta Sans',sans-serif", color: "#0D0D0D" }}>{workspace}</span>
-                    </div>
-                    <ChevronDown size={13} style={{ color: "#A8A49C" }} />
-                </button>
+                        <ChevronDown size={13} style={{ color: "#A8A49C" }} />
+                    </button>
+
+                    <Link href="/app/notifications" style={{
+                        width: 36, display: "flex", alignItems: "center", justifyContent: "center",
+                        borderRadius: 10, background: "transparent", border: "1.5px solid var(--grey-2)",
+                        color: "#0D0D0D", cursor: "pointer", transition: "all .2s", position: "relative"
+                    }}
+                        onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "var(--grey-1)"}
+                        onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "transparent"}>
+                        <Bell size={15} />
+                        {unreadNotifCount > 0 && (
+                            <span style={{ position: "absolute", top: -2, right: -2, width: 10, height: 10, borderRadius: "50%", background: "#EF4444", border: "2px solid #fff" }} />
+                        )}
+                    </Link>
+                </div>
             </div>
 
             {/* Search */}
@@ -183,11 +192,28 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             display: "flex", flexDirection: "column",
         }}>
             <div style={{ padding: "12px 10px", borderBottom: "1px solid var(--grey-2)" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px" }}>
-                    <div style={{ width: 24, height: 24, borderRadius: 7, overflow: "hidden", flexShrink: 0 }}>
-                        <Image src="/logo.png" alt="CipherDesk" width={24} height={24} style={{ objectFit: "cover" }} />
+                <div style={{ display: "flex", gap: 6 }}>
+                    <div style={{
+                        flex: 1, display: "flex", alignItems: "center", gap: 8, padding: "8px 10px"
+                    }}>
+                        <div style={{ width: 24, height: 24, borderRadius: 7, overflow: "hidden", flexShrink: 0 }}>
+                            <Image src="/logo.png" alt="CipherDesk" width={24} height={24} style={{ objectFit: "cover" }} />
+                        </div>
+                        <span style={{ fontSize: 13, fontWeight: 700, fontFamily: "'Plus Jakarta Sans',sans-serif", color: "#0D0D0D", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 90 }}>{workspace}</span>
                     </div>
-                    <span style={{ fontSize: 13, fontWeight: 700, fontFamily: "'Plus Jakarta Sans',sans-serif", color: "#0D0D0D" }}>{workspace}</span>
+
+                    <Link href="/app/notifications" style={{
+                        width: 36, display: "flex", alignItems: "center", justifyContent: "center",
+                        borderRadius: 10, background: "transparent", border: "1.5px solid var(--grey-2)",
+                        color: "#0D0D0D", cursor: "pointer", transition: "all .2s", position: "relative"
+                    }}
+                        onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "var(--grey-1)"}
+                        onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "transparent"}>
+                        <Bell size={15} />
+                        {unreadNotifCount > 0 && (
+                            <span style={{ position: "absolute", top: -2, right: -2, width: 10, height: 10, borderRadius: "50%", background: "#EF4444", border: "2px solid #fff" }} />
+                        )}
+                    </Link>
                 </div>
             </div>
 
@@ -246,10 +272,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
                 <div style={{ width: 28, height: 1, background: "var(--grey-2)", marginBottom: 2 }} />
 
-                {/* Nav items */}
-                {NAV.map(item => {
+                {/* Core Nav items */}
+                {MAIN_NAV.map(item => {
                     const active = isActive(item.match);
-                    const isBell = item.label === "Notifications";
                     return (
                         <Link key={item.label} href={item.href} title={item.label}
                             style={{
@@ -272,20 +297,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                                 }
                             }}>
                             <item.icon size={17} />
-                            {/* Notification badge */}
-                            {isBell && unreadNotifCount > 0 && (
-                                <span style={{
-                                    position: "absolute", top: 4, right: 4,
-                                    minWidth: 14, height: 14, borderRadius: "50%",
-                                    background: "#EF4444", color: "#fff",
-                                    fontSize: 8, fontWeight: 900,
-                                    display: "flex", alignItems: "center", justifyContent: "center",
-                                    border: "2px solid #fff",
-                                    lineHeight: 1,
-                                }}>
-                                    {unreadNotifCount > 9 ? "9+" : unreadNotifCount}
-                                </span>
-                            )}
                         </Link>
                     );
                 })}
@@ -308,17 +319,24 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     <Search size={15} />
                 </button>
 
-                {/* AI */}
-                <Link href="/app/ai" title="AI Digest (Pro)"
+                {/* Settings */}
+                <Link href={SETTINGS_HREF} title="Workspace Settings"
                     style={{
                         width: 38, height: 38, borderRadius: 10,
                         display: "flex", alignItems: "center", justifyContent: "center",
-                        color: isActive("/app/ai") ? "#0D0D0D" : "#6B675E",
-                        background: isActive("/app/ai") ? "#AAEF45" : "#F5F0E8",
-                        border: "1.5px solid var(--grey-2)",
-                        transition: "all .2s", textDecoration: "none",
+                        color: isActive("/app/settings") || isActive("/app/admin") || isActive("/app/keys") || isActive("/app/members") || isActive("/app/compliance") || isActive("/app/audit") || isActive("/app/integrations") ? "#0D0D0D" : "#6B675E",
+                        background: isActive("/app/settings") || isActive("/app/admin") || isActive("/app/keys") || isActive("/app/members") || isActive("/app/compliance") || isActive("/app/audit") || isActive("/app/integrations") ? "var(--grey-2)" : "transparent",
+                        transition: "all .18s", textDecoration: "none",
+                    }}
+                    onMouseEnter={e => {
+                        (e.currentTarget as HTMLElement).style.background = "var(--grey-1)";
+                    }}
+                    onMouseLeave={e => {
+                        if (!(isActive("/app/settings") || isActive("/app/admin") || isActive("/app/keys") || isActive("/app/members") || isActive("/app/compliance") || isActive("/app/audit") || isActive("/app/integrations"))) {
+                            (e.currentTarget as HTMLElement).style.background = "transparent";
+                        }
                     }}>
-                    <Sparkles size={16} />
+                    <Settings size={18} />
                 </Link>
 
                 {/* Avatar + sign out */}
