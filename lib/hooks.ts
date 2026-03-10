@@ -245,14 +245,42 @@ export function useMembers() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        supabase
-            .from("profiles")
-            .select("*")
-            .order("created_at")
-            .then(({ data }: any) => {
+        let isMounted = true;
+
+        async function fetchWorkspaceMembers() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                if (isMounted) setLoading(false);
+                return;
+            }
+
+            const { data: myProfile } = await supabase
+                .from("profiles")
+                .select("workspace")
+                .eq("id", user.id)
+                .single();
+
+            const ws = myProfile?.workspace;
+            if (!ws) {
+                if (isMounted) { setMembers([]); setLoading(false); }
+                return;
+            }
+
+            const { data } = await supabase
+                .from("profiles")
+                .select("*")
+                .eq("workspace", ws)
+                .order("created_at");
+
+            if (isMounted) {
                 setMembers(data ?? []);
                 setLoading(false);
-            });
+            }
+        }
+
+        fetchWorkspaceMembers();
+
+        return () => { isMounted = false; };
     }, []);
 
     const updateRole = useCallback(async (id: string, role: string, actorId: string) => {
