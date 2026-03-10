@@ -114,7 +114,7 @@ export default function AdminPage() {
                         </div>
 
                         {/* Chart + channel breakdown */}
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 16 }}>
+                        <div className="grid grid-cols-1 md:grid-cols-[1fr_320px]" style={{ gap: 16 }}>
                             {/* Bar chart */}
                             <div style={{ background: "#fff", border: "1.5px solid #E8E4DC", borderRadius: 16, padding: 22 }}>
                                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
@@ -178,9 +178,8 @@ export default function AdminPage() {
 
                                 return (
                                     <div key={m.id}
-                                        style={{ padding: "12px 22px", borderBottom: i < arr.length - 1 ? "1px solid #F0EBE3" : "none", display: "grid", gridTemplateColumns: "1fr 70px 70px 90px", gap: 12, alignItems: "center", transition: "background .15s" }}
-                                        onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "#FAFAF7"}
-                                        onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "transparent"}>
+                                        className="grid grid-cols-2 lg:grid-cols-[1fr_70px_70px_90px] items-center gap-3 lg:gap-4 border-b border-[#F0EBE3] px-5 py-3 transition-colors hover:bg-[#FAFAF7]"
+                                        style={{ borderBottom: i < arr.length - 1 ? "1px solid #F0EBE3" : "none" }}>
                                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                                             <div style={{ width: 32, height: 32, borderRadius: 9, background: bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 800, color: "#fff" }}>{initial}</div>
                                             <div>

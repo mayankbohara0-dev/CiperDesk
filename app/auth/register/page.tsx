@@ -56,15 +56,10 @@ export default function RegisterPage() {
     };
 
     return (
-        <div style={{ minHeight: "100vh", background: "var(--cream)", display: "flex" }}>
+        <div className="flex flex-col md:flex-row min-h-screen" style={{ background: "var(--cream)" }}>
 
             {/* Left dark panel */}
-            <div style={{
-                width: 420, flexShrink: 0, background: "#0D0D0D",
-                display: "flex", flexDirection: "column", padding: 48,
-                justifyContent: "space-between",
-                position: "relative", overflow: "hidden",
-            }}>
+            <div className="hidden md:flex flex-col justify-between relative overflow-hidden shrink-0" style={{ width: 420, background: "#0D0D0D", padding: 48 }}>
                 <div style={{ position: "absolute", top: "30%", right: "-20%", width: 350, height: 350, borderRadius: "50%", background: "radial-gradient(circle, rgba(170,239,69,.25) 0%, transparent 70%)", filter: "blur(50px)" }} />
                 <div style={{ position: "absolute", bottom: "10%", left: "10%", width: 200, height: 200, borderRadius: "50%", background: "radial-gradient(circle, rgba(170,239,69,.1) 0%, transparent 70%)", filter: "blur(40px)" }} />
 

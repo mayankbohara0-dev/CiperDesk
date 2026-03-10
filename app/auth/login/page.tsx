@@ -44,7 +44,7 @@ export default function LoginPage() {
     };
 
     return (
-        <div style={{ minHeight: "100vh", background: "var(--cream)", display: "flex" }}>
+        <div className="flex flex-col md:flex-row min-h-screen" style={{ background: "var(--cream)" }}>
 
             {/* Left panel — form */}
             <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 32px" }}>
@@ -160,7 +160,7 @@ export default function LoginPage() {
             </div>
 
             {/* Right panel — decorative */}
-            <div style={{ width: 480, flexShrink: 0, background: "#0D0D0D", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 48, position: "relative", overflow: "hidden" }}>
+            <div className="hidden md:flex flex-col items-center justify-center relative overflow-hidden" style={{ width: 480, flexShrink: 0, background: "#0D0D0D", padding: 48 }}>
                 <div style={{ position: "absolute", top: "20%", left: "50%", transform: "translateX(-50%)", width: 300, height: 300, borderRadius: "50%", background: "radial-gradient(circle, rgba(170,239,69,.25) 0%, transparent 70%)", filter: "blur(40px)" }} />
                 <div style={{ position: "relative", textAlign: "center" }}>
                     <div style={{ width: 80, height: 80, borderRadius: 24, background: "#AAEF45", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 28px" }} className="animate-float">

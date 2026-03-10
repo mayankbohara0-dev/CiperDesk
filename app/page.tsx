@@ -50,7 +50,7 @@ function Navbar() {
           </span>
         </Link>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+        <div className="hidden md:flex items-center" style={{ gap: 2 }}>
           {links.map(l => (
             <a key={l.label} href={l.href} style={{
               padding: "8px 14px", borderRadius: 8,
@@ -65,15 +65,15 @@ function Navbar() {
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <Link href="/auth/login" style={{ padding: "8px 16px", borderRadius: 999, fontSize: 14, fontWeight: 600, color: "#0D0D0D", textDecoration: "none", transition: "all .15s" }}
+          <Link href="/auth/login" className="hidden lg:block" style={{ padding: "8px 16px", borderRadius: 999, fontSize: 14, fontWeight: 600, color: "#0D0D0D", textDecoration: "none", transition: "all .15s" }}
             onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "rgba(13,13,13,.07)"}
             onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "transparent"}>
             Sign in
           </Link>
-          <Link href="/auth/register" className="btn-primary" style={{ fontSize: 14, padding: "9px 20px" }}>
+          <Link href="/auth/register" className="btn-primary hidden md:inline-flex" style={{ fontSize: 14, padding: "9px 20px" }}>
             Get started <ChevronRight size={14} />
           </Link>
-          <button className="btn-ghost" style={{ padding: 8 }} id="mobile-menu-btn" aria-label="Toggle menu" onClick={() => setMobileOpen(!mobileOpen)}>
+          <button className="btn-ghost md:hidden" style={{ padding: 8 }} id="mobile-menu-btn" aria-label="Toggle menu" onClick={() => setMobileOpen(!mobileOpen)}>
             {mobileOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
         </div>
@@ -372,12 +372,13 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {/* App mockup + floating widgets */}
         <div className="animate-in" style={{
           position: "relative", width: "100%", maxWidth: 900, margin: "72px auto 0",
           display: "flex", justifyContent: "center", animationDelay: ".15s",
         }}>
-          <FloatingWidgets />
+          <div className="hidden lg:block absolute inset-0 pointer-events-none">
+            <FloatingWidgets />
+          </div>
           <AppMockup />
         </div>
       </section>
@@ -418,7 +419,7 @@ export default function LandingPage() {
 
           {/* Tab content */}
           {activeTab === "Chat" && (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 60, alignItems: "center" }}>
+            <div className="grid grid-cols-1 lg:grid-cols-2 items-center" style={{ gap: 60 }}>
               <div>
                 <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", color: "#6B675E", marginBottom: 16, display: "block" }}>Encrypted Messaging</span>
                 <h2 style={{ fontSize: "2.5rem", fontWeight: 900, fontFamily: "'Plus Jakarta Sans',sans-serif", color: "#fff", letterSpacing: "-.03em", lineHeight: 1.1, marginBottom: 20 }}>
@@ -479,7 +480,7 @@ export default function LandingPage() {
           )}
 
           {activeTab === "Tasks" && (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 60, alignItems: "center" }}>
+            <div className="grid grid-cols-1 lg:grid-cols-2 items-center" style={{ gap: 60 }}>
               <div>
                 <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", color: "#6B675E", marginBottom: 16, display: "block" }}>Zero-Knowledge Task Boards</span>
                 <h2 style={{ fontSize: "2.5rem", fontWeight: 900, fontFamily: "'Plus Jakarta Sans',sans-serif", color: "#fff", letterSpacing: "-.03em", lineHeight: 1.1, marginBottom: 20 }}>
@@ -527,7 +528,7 @@ export default function LandingPage() {
           )}
 
           {activeTab === "Vault" && (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 60, alignItems: "center" }}>
+            <div className="grid grid-cols-1 lg:grid-cols-2 items-center" style={{ gap: 60 }}>
               <div>
                 <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", color: "#6B675E", marginBottom: 16, display: "block" }}>Client-Encrypted File Vault</span>
                 <h2 style={{ fontSize: "2.5rem", fontWeight: 900, fontFamily: "'Plus Jakarta Sans',sans-serif", color: "#fff", letterSpacing: "-.03em", lineHeight: 1.1, marginBottom: 20 }}>
@@ -719,7 +720,7 @@ export default function LandingPage() {
             <p className="section-subheading" style={{ margin: "16px auto 0", textAlign: "center" }}>No tricks. No data selling. Revenue from subscriptions only.</p>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+          <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 16 }}>
             {/* Free */}
             <div className="card" style={{ display: "flex", flexDirection: "column" }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: "#A8A49C", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 20 }}>Free Forever</div>

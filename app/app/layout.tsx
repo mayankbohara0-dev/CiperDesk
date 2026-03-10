@@ -61,12 +61,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
     /* Channel sidebar (chat) */
     const ChatSidebar = () => (
-        <div style={{
-            width: 220, flexShrink: 0,
-            background: "#fff",
-            borderRight: "1px solid var(--grey-2)",
-            display: "flex", flexDirection: "column", overflow: "hidden",
-        }}>
+        <div className="w-full md:w-[220px] h-[30vh] md:h-full flex-shrink-0 bg-white border-b md:border-b-0 border-r-0 md:border-r border-[var(--grey-2)] flex flex-col overflow-hidden">
             {/* Workspace header & Notifications */}
             <div style={{ padding: "12px 10px", borderBottom: "1px solid var(--grey-2)" }}>
                 <div style={{ display: "flex", gap: 6 }}>
@@ -201,11 +196,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
     /* Generic sidebar (non-chat pages) */
     const GenericSidebar = () => (
-        <div style={{
-            width: 220, flexShrink: 0, background: "#fff",
-            borderRight: "1px solid var(--grey-2)",
-            display: "flex", flexDirection: "column",
-        }}>
+        <div className="w-full md:w-[220px] h-auto md:h-full flex-shrink-0 bg-white border-b md:border-b-0 border-r-0 md:border-r border-[var(--grey-2)] flex flex-col overflow-hidden shrink-0">
             <div style={{ padding: "12px 10px", borderBottom: "1px solid var(--grey-2)" }}>
                 <div style={{ display: "flex", gap: 6 }}>
                     <div style={{
@@ -261,19 +252,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     );
 
     return (
-        <div style={{ height: "100vh", display: "flex", overflow: "hidden", background: "var(--cream)", fontFamily: "Inter, sans-serif" }}>
+        <div className="h-screen flex flex-col md:flex-row overflow-hidden" style={{ background: "var(--cream)", fontFamily: "Inter, sans-serif" }}>
 
             {/* ── Global Cmd+K Search ── */}
             <CmdSearch open={cmdOpen} onClose={() => setCmdOpen(false)} />
 
             {/* ── Icon Rail ── */}
-            <aside style={{
-                width: 60, flexShrink: 0,
-                background: "#fff",
-                borderRight: "1px solid var(--grey-2)",
-                display: "flex", flexDirection: "column", alignItems: "center",
-                padding: "12px 0 10px", gap: 4, zIndex: 20,
-            }}>
+            <aside className="w-full md:w-[60px] h-[60px] md:h-full flex-shrink-0 bg-white border-t md:border-t-0 border-r-0 md:border-r border-[var(--grey-2)] flex flex-row md:flex-col items-center justify-start md:px-0 md:py-3 gap-2 md:gap-4 z-20 order-last md:order-first overflow-x-auto px-4 py-0 shrink-0">
                 {/* Logo */}
                 <Link href="/app/chat/general" style={{
                     width: 36, height: 36, borderRadius: 10, marginBottom: 8,
