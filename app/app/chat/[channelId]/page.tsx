@@ -257,16 +257,16 @@ export default function ChatPage() {
 
             {/* Search bar */}
             {showSearch && (
-                <div style={{ padding: "8px 20px", borderBottom: "1.5px solid #E8E4DC", display: "flex", alignItems: "center", gap: 8 }}>
-                    <Search size={14} style={{ color: "#A8A49C" }} />
+                <div className="flex items-center gap-2 px-3 md:px-5 py-2 border-b-[1.5px] border-[#E8E4DC]">
+                    <Search size={14} style={{ color: "#A8A49C" }} className="shrink-0" />
                     <input autoFocus placeholder="Search messages…" value={search} onChange={e => setSearch(e.target.value)}
-                        style={{ flex: 1, border: "none", outline: "none", fontSize: 13, color: "#0D0D0D", background: "transparent" }} />
+                        className="flex-1 border-none outline-none text-[13px] text-[#0D0D0D] bg-transparent min-w-0" />
                     {search && <button onClick={() => setSearch("")} style={{ border: "none", background: "none", cursor: "pointer", color: "#A8A49C" }}><X size={14} /></button>}
                 </div>
             )}
 
             {/* Messages list */}
-            <div style={{ flex: 1, overflowY: "auto", padding: "16px 20px", display: "flex", flexDirection: "column", gap: 2 }}>
+            <div className="flex-1 overflow-y-auto p-3 md:p-4 md:px-5 flex flex-col gap-0.5">
                 {msgsLoading && (
                     <div style={{ display: "flex", justifyContent: "center", padding: 32 }}>
                         <div style={{ width: 28, height: 28, borderRadius: "50%", border: "2px solid #E8E4DC", borderTopColor: "#0D0D0D", animation: "spin 1s linear infinite" }} />
@@ -391,7 +391,7 @@ export default function ChatPage() {
             </div>
 
             {Object.values(typingUsers).length > 0 && (
-                <div style={{ padding: "0 24px 6px", fontSize: 11, color: "#A8A49C", display: "flex", alignItems: "center", gap: 6 }}>
+                <div className="px-4 md:px-6 pb-1.5 text-[11px] text-[#A8A49C] flex items-center gap-1.5">
                     <div style={{ display: "flex", gap: 3, alignItems: "center" }}>
                         <div style={{ width: 4, height: 4, borderRadius: "50%", background: "#A8A49C", animation: "pulse 1s ease-in-out infinite" }} />
                         <div style={{ width: 4, height: 4, borderRadius: "50%", background: "#A8A49C", animation: "pulse 1s ease-in-out infinite .2s" }} />
@@ -402,10 +402,10 @@ export default function ChatPage() {
             )}
 
             {/* Composer */}
-            <div style={{ padding: "12px 20px", borderTop: "1.5px solid #E8E4DC", background: "#fff", flexShrink: 0, position: "relative" }}>
+            <div className="p-3 md:p-3 md:px-5 border-t-[1.5px] border-[#E8E4DC] bg-white shrink-0 relative">
                 {/* @mention autocomplete */}
                 {mentionSuggestions.length > 0 && (
-                    <div style={{ position: "absolute", bottom: "100%", left: 20, right: 20, background: "#fff", border: "1.5px solid #E8E4DC", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,.12)", overflow: "hidden", marginBottom: 4 }}>
+                    <div className="absolute bottom-full left-3 right-3 md:left-5 md:right-5 bg-white border-[1.5px] border-[#E8E4DC] rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.12)] overflow-hidden mb-1">
                         {mentionSuggestions.map(m => (
                             <button key={m.id} onClick={() => insertMention(m)}
                                 style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", border: "none", background: "transparent", cursor: "pointer", textAlign: "left", transition: "background .1s" }}
@@ -422,31 +422,32 @@ export default function ChatPage() {
                         ))}
                     </div>
                 )}
-                <div style={{ display: "flex", gap: 10, alignItems: "flex-end", background: "#F5F0E8", border: "1.5px solid #E8E4DC", borderRadius: 14, padding: "8px 12px", transition: "border-color .15s" }}
+                <div className="flex gap-2 md:gap-2.5 items-end bg-[#F5F0E8] border-[1.5px] border-[#E8E4DC] rounded-[14px] p-2 md:p-2 transition-colors duration-150"
                     onFocusCapture={e => (e.currentTarget as HTMLElement).style.borderColor = "#0D0D0D"}
                     onBlurCapture={e => (e.currentTarget as HTMLElement).style.borderColor = "#E8E4DC"}>
-                    <button style={{ flexShrink: 0, width: 28, height: 28, borderRadius: 8, border: "none", background: "none", cursor: "pointer", color: "#A8A49C", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <button className="shrink-0 w-7 h-7 md:w-7 md:h-7 rounded-lg border-none bg-transparent cursor-pointer text-[#A8A49C] flex items-center justify-center">
                         <Paperclip size={15} />
                     </button>
-                    <textarea ref={inputRef} placeholder={`Message #${currentChannel?.name ?? channelId}… (@ to mention)`}
+                    <textarea ref={inputRef} placeholder={`Message #${currentChannel?.name ?? channelId}…`}
                         value={input} onChange={e => {
                             handleInputChange(e.target.value);
                             if (e.target.value.length === 1 && resolvedChannelId && user) {
                                 supabase.channel(`typing-${resolvedChannelId}`).send({ type: "broadcast", event: "typing", payload: { userId: user.id, name: profile?.full_name || profile?.email || "Someone" } });
                             }
                         }} onKeyDown={handleKeyDown} rows={1}
-                        style={{ flex: 1, border: "none", outline: "none", background: "transparent", fontSize: 14, color: "#0D0D0D", resize: "none", fontFamily: "Inter,sans-serif", lineHeight: 1.5, maxHeight: 120, overflowY: "auto" }} />
-                    <button style={{ flexShrink: 0, width: 28, height: 28, borderRadius: 8, border: "none", background: "none", cursor: "pointer", color: "#A8A49C", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        className="flex-1 border-none outline-none bg-transparent text-[14px] text-[#0D0D0D] resize-none font-['Inter',sans-serif] leading-[1.5] max-h-[120px] overflow-y-auto py-1" />
+                    <button className="shrink-0 w-7 h-7 md:w-7 md:h-7 rounded-lg border-none bg-transparent cursor-pointer text-[#A8A49C] flex items-center justify-center">
                         <Smile size={15} />
                     </button>
                     <button onClick={handleSend} disabled={!input.trim() || sending}
-                        style={{ flexShrink: 0, width: 34, height: 34, borderRadius: 10, border: "none", background: input.trim() ? "#0D0D0D" : "#E8E4DC", display: "flex", alignItems: "center", justifyContent: "center", cursor: input.trim() ? "pointer" : "default", transition: "all .15s" }}>
+                        className="shrink-0 w-8 h-8 md:w-[34px] md:h-[34px] rounded-[10px] border-none flex items-center justify-center transition-all duration-150"
+                        style={{ background: input.trim() ? "#0D0D0D" : "#E8E4DC", cursor: input.trim() ? "pointer" : "default" }}>
                         {sending
                             ? <Check size={16} style={{ color: "#AAEF45" }} />
                             : <Send size={15} style={{ color: input.trim() ? "#AAEF45" : "#A8A49C", transform: "rotate(0deg)" }} />}
                     </button>
                 </div>
-                <p style={{ fontSize: 11, color: "#C8C4BC", textAlign: "center", marginTop: 6 }}>Shift+Enter for new line · E2EE · messages stored in Supabase</p>
+                <p className="hidden md:block text-[11px] text-[#C8C4BC] text-center mt-1.5">Shift+Enter for new line · E2EE · messages stored in Supabase</p>
             </div>
         </div>
     );

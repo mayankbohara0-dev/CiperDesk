@@ -25,8 +25,8 @@ const SH2 = ({ children }: { children: React.ReactNode }) => (
     <h2 style={{ fontSize: 14, fontWeight: 800, color: "#0D0D0D", fontFamily: "'Plus Jakarta Sans',sans-serif", marginBottom: 14 }}>{children}</h2>
 );
 
-const Card = ({ children, style = {} }: { children: React.ReactNode; style?: React.CSSProperties }) => (
-    <div style={{ background: "#fff", borderRadius: 16, border: "1.5px solid #E8E4DC", padding: 20, ...style }}>{children}</div>
+const Card = ({ children, style = {}, className = "" }: { children: React.ReactNode; style?: React.CSSProperties; className?: string }) => (
+    <div className={className} style={{ background: "#fff", borderRadius: 16, border: "1.5px solid #E8E4DC", padding: 20, ...style }}>{children}</div>
 );
 
 const Label = ({ children }: { children: React.ReactNode }) => (
@@ -56,8 +56,8 @@ function ProfileTab() {
                 <SH2>Profile Settings</SH2>
                 <Card style={{ display: "flex", flexDirection: "column", gap: 18 }}>
                     {/* Avatar */}
-                    <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                        <div style={{ width: 64, height: 64, borderRadius: 18, background: "#AAEF45", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, fontWeight: 900, color: "#0D0D0D" }}>{initials || "U"}</div>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                        <div style={{ width: 64, height: 64, borderRadius: 18, background: "#AAEF45", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, fontWeight: 900, color: "#0D0D0D", flexShrink: 0 }}>{initials || "U"}</div>
                         <div>
                             <button style={{ padding: "7px 14px", borderRadius: 10, border: "1.5px solid #E8E4DC", background: "#fff", fontSize: 13, fontWeight: 600, color: "#0D0D0D", cursor: "pointer" }}>Change Avatar</button>
                             <p style={{ fontSize: 11, color: "#A8A49C", marginTop: 5 }}>Upload a custom profile image.</p>
@@ -138,9 +138,9 @@ function WorkspaceTab() {
             <div>
                 <SH2>Invite Members</SH2>
                 <Card style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                    <div style={{ display: "flex", gap: 10 }}>
-                        <input className="input-field" style={{ flex: 1 }} placeholder="teammate@company.com" type="email" />
-                        <select className="input-field" style={{ width: 110 }}><option>Member</option><option>Admin</option></select>
+                    <div className="flex flex-col sm:flex-row gap-2.5">
+                        <input className="input-field flex-1" placeholder="teammate@company.com" type="email" />
+                        <select className="input-field w-full sm:w-[110px]"><option>Member</option><option>Admin</option></select>
                     </div>
                     <button className="btn-primary" style={{ width: "fit-content" }}>
                         <Lock size={13} /> Send Secure Invite
@@ -154,12 +154,12 @@ function WorkspaceTab() {
             <div>
                 <h2 style={{ fontSize: 14, fontWeight: 800, color: "#DC2626", fontFamily: "'Plus Jakarta Sans',sans-serif", marginBottom: 14 }}>Danger Zone</h2>
                 <Card style={{ border: "1.5px solid #FECACA" }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div>
                             <p style={{ fontSize: 13, fontWeight: 700, color: "#0D0D0D" }}>Delete Workspace</p>
                             <p style={{ fontSize: 12, color: "#A8A49C", marginTop: 3 }}>Permanently delete workspace and all encrypted data. Irreversible.</p>
                         </div>
-                        <button style={{ padding: "8px 14px", borderRadius: 10, background: "#FEE2E2", border: "1.5px solid #FECACA", color: "#DC2626", fontSize: 13, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>Delete</button>
+                        <button style={{ padding: "8px 14px", borderRadius: 10, background: "#FEE2E2", border: "1.5px solid #FECACA", color: "#DC2626", fontSize: 13, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }} className="w-fit">Delete</button>
                     </div>
                 </Card>
             </div>
@@ -175,7 +175,7 @@ function SecurityTab() {
             {/* 2FA */}
             <div>
                 <SH2>Two-Factor Authentication</SH2>
-                <Card style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <Card className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
                         <div style={{ width: 42, height: 42, borderRadius: 12, background: "#F0FDF4", border: "1.5px solid #BBF7D0", display: "flex", alignItems: "center", justifyContent: "center" }}>
                             <Check size={18} style={{ color: "#16A34A" }} />
@@ -185,7 +185,7 @@ function SecurityTab() {
                             <p style={{ fontSize: 12, color: "#A8A49C" }}>Using Authenticator App (TOTP)</p>
                         </div>
                     </div>
-                    <button style={{ padding: "7px 14px", borderRadius: 10, border: "1.5px solid #E8E4DC", background: "#fff", fontSize: 13, fontWeight: 600, color: "#0D0D0D", cursor: "pointer" }}>Reconfigure</button>
+                    <button className="w-fit" style={{ padding: "7px 14px", borderRadius: 10, border: "1.5px solid #E8E4DC", background: "#fff", fontSize: 13, fontWeight: 600, color: "#0D0D0D", cursor: "pointer" }}>Reconfigure</button>
                 </Card>
             </div>
 
@@ -255,7 +255,7 @@ function SecurityTab() {
                 <SH2>Active Devices</SH2>
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                     {DEVICES.length > 0 ? DEVICES.map(d => (
-                        <Card key={d.id} style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                        <Card key={d.id} className="flex flex-col sm:flex-row sm:items-center gap-3.5">
                             <div style={{ width: 42, height: 42, borderRadius: 12, background: "#F5F0E8", border: "1.5px solid #E8E4DC", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                                 <d.Icon size={19} style={{ color: "#6B675E" }} />
                             </div>
@@ -273,7 +273,7 @@ function SecurityTab() {
                                 </div>
                             </div>
                             {!d.isCurrent && (
-                                <button style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 9, background: "#FEE2E2", border: "1.5px solid #FECACA", color: "#DC2626", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                                <button className="w-fit" style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 9, background: "#FEE2E2", border: "1.5px solid #FECACA", color: "#DC2626", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
                                     <LogOut size={12} /> Revoke
                                 </button>
                             )}

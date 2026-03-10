@@ -67,19 +67,19 @@ export default function MembersPage() {
             </div>
 
             {/* Body */}
-            <div style={{ flex: 1, overflowY: "auto", padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
+            <div className="flex-1 overflow-y-auto p-4 md:p-6 flex flex-col gap-4">
 
                 {/* Plan bar */}
-                <div style={{ background: "#fff", border: "1.5px solid #E8E4DC", borderRadius: 14, padding: "13px 18px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <Lock size={13} style={{ color: "#166534" }} />
-                        <span style={{ fontSize: 13, color: "#0D0D0D" }}>Free plan · <strong>{members.length} / 5 members</strong> used · {5 - members.length} seats remaining</span>
+                <div className="bg-white border-[1.5px] border-[#E8E4DC] rounded-[14px] p-3.5 md:p-[13px] md:px-[18px] flex flex-col md:flex-row md:items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                        <Lock size={13} className="text-[#166534] shrink-0" />
+                        <span className="text-[12px] md:text-[13px] text-[#0D0D0D]">Free plan · <strong>{members.length} / 5 members</strong> used · {5 - members.length} seats remaining</span>
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ fontSize: 12, color: "#A8A49C" }}>Invite link:</span>
-                        <code style={{ fontSize: 11, fontFamily: "monospace", color: "#4F63FF", background: "#EEF2FF", padding: "3px 10px", borderRadius: 6 }}>cipherdesk.io/invite/bf9x2k</code>
-                        <button onClick={copyLink} style={{ display: "flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 7, border: "1.5px solid #E8E4DC", background: "#fff", fontSize: 12, fontWeight: 600, color: "#0D0D0D", cursor: "pointer" }}>
-                            {linkCopied ? <><CheckCheck size={12} style={{ color: "#16A34A" }} />Copied!</> : <><Copy size={12} />Copy</>}
+                    <div className="flex items-center gap-2 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+                        <span className="text-[11px] md:text-[12px] text-[#A8A49C] shrink-0">Invite link:</span>
+                        <code className="text-[10px] md:text-[11px] font-mono text-[#4F63FF] bg-[#EEF2FF] px-[10px] py-[3px] rounded-md shrink-0">cipherdesk.io/invite/bf9x2k</code>
+                        <button onClick={copyLink} className="flex items-center gap-1.5 px-2.5 py-1 rounded-[7px] border-[1.5px] border-[#E8E4DC] bg-white text-[11px] md:text-[12px] font-semibold text-[#0D0D0D] cursor-pointer shrink-0">
+                            {linkCopied ? <><CheckCheck size={12} className="text-[#16A34A]" />Copied!</> : <><Copy size={12} />Copy</>}
                         </button>
                     </div>
                 </div>
@@ -162,9 +162,9 @@ export default function MembersPage() {
 
             {/* Invite Modal */}
             {inviteOpen && (
-                <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(13,13,13,.4)", backdropFilter: "blur(6px)" }}
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0D0D0D]/40 backdrop-blur-md p-4"
                     onClick={e => e.target === e.currentTarget && setInviteOpen(false)}>
-                    <div style={{ background: "#fff", borderRadius: 20, padding: 28, width: "100%", maxWidth: 440, boxShadow: "0 20px 60px rgba(0,0,0,.15)" }}>
+                    <div className="bg-white rounded-[20px] p-5 md:p-7 w-full max-w-[440px] shadow-[0_20px_60px_rgba(0,0,0,0.15)]">
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 22 }}>
                             <h2 style={{ fontSize: 17, fontWeight: 900, color: "#0D0D0D", fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Invite a team member</h2>
                             <button onClick={() => setInviteOpen(false)} style={{ border: "none", background: "none", cursor: "pointer", color: "#A8A49C", padding: 4 }}><X size={18} /></button>
@@ -182,21 +182,21 @@ export default function MembersPage() {
                             <form onSubmit={handleInvite} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                                 <div>
                                     <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#2D2D2D", marginBottom: 8 }}>Email address</label>
-                                    <input type="email" className="input-field" placeholder="colleague@company.com"
+                                    <input type="email" className="input-field w-full" placeholder="colleague@company.com"
                                         value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} required autoFocus />
                                 </div>
                                 <div>
                                     <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#2D2D2D", marginBottom: 8 }}>Role</label>
-                                    <select className="input-field" value={inviteRole} onChange={e => setInviteRole(e.target.value as Role)}>
+                                    <select className="input-field w-full" value={inviteRole} onChange={e => setInviteRole(e.target.value as Role)}>
                                         <option value="member">Member — can view and post</option>
                                         <option value="admin">Admin — can manage channels and members</option>
                                     </select>
                                 </div>
-                                <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 10, padding: "11px 14px", display: "flex", gap: 10 }}>
-                                    <Lock size={13} style={{ color: "#166534", flexShrink: 0, marginTop: 1 }} />
-                                    <p style={{ fontSize: 12, color: "#166534", lineHeight: 1.55 }}>An encrypted invite link is generated. When they accept, their browser generates a local Ed25519/X25519 keypair. Their private key never leaves their device.</p>
+                                <div className="bg-[#F0FDF4] border border-[#BBF7D0] rounded-[10px] p-3 flex gap-2.5">
+                                    <Lock size={13} className="text-[#166534] shrink-0 mt-[1px]" />
+                                    <p className="text-[12px] text-[#166534] font-medium leading-[1.55]">An encrypted invite link is generated. When they accept, their browser generates a local Ed25519/X25519 keypair. Their private key never leaves their device.</p>
                                 </div>
-                                <button type="submit" className="btn-primary" style={{ justifyContent: "center", padding: "12px" }}>
+                                <button type="submit" className="btn-primary w-full justify-center py-3">
                                     <Mail size={15} /> Send Encrypted Invite
                                 </button>
                             </form>
