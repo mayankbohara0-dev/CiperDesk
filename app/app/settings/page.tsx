@@ -352,26 +352,24 @@ export default function SettingsPage() {
                 <h1 style={{ fontSize: 17, fontWeight: 900, color: "#0D0D0D", fontFamily: "'Plus Jakarta Sans',sans-serif", letterSpacing: "-.02em" }}>Settings</h1>
             </div>
 
-            <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
+            <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
                 {/* Sidebar */}
-                <div style={{ width: 210, flexShrink: 0, borderRight: "1.5px solid #E8E4DC", background: "#fff", padding: "12px 10px", display: "flex", flexDirection: "column", gap: 2 }}>
+                <div className="w-full md:w-[210px] shrink-0 border-b-[1.5px] md:border-b-0 md:border-r-[1.5px] border-[#E8E4DC] bg-white p-2.5 md:p-3 flex flex-row md:flex-col gap-1 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
                     {TABS.map(tab => {
                         const active = activeTab === tab.id;
                         return (
                             <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                                style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 10, border: "none", cursor: "pointer", transition: "all .15s", textAlign: "left", background: active ? "#0D0D0D" : "transparent", color: active ? "#fff" : "#6B675E", fontWeight: active ? 700 : 500, fontSize: 13, fontFamily: "Inter, sans-serif" }}
-                                onMouseEnter={e => { if (!active) (e.currentTarget as HTMLElement).style.background = "#F5F0E8"; }}
-                                onMouseLeave={e => { if (!active) (e.currentTarget as HTMLElement).style.background = "transparent"; }}>
+                                className={`w-auto md:w-full shrink-0 flex items-center justify-center md:justify-start gap-2 md:gap-2.5 px-3 py-2 md:py-2.5 rounded-[10px] border-none cursor-pointer transition-all duration-150 text-left ${active ? "bg-[#0D0D0D] text-white font-bold" : "bg-transparent text-[#6B675E] font-medium hover:bg-[#F5F0E8]"} text-[13px] font-['Inter',sans-serif]`}>
                                 <tab.icon size={15} />
-                                <span style={{ flex: 1 }}>{tab.label}</span>
-                                {active && <ChevronRight size={13} />}
+                                <span className="flex-1 whitespace-nowrap">{tab.label}</span>
+                                {active && <ChevronRight size={13} className="hidden md:block" />}
                             </button>
                         );
                     })}
                 </div>
 
                 {/* Content */}
-                <div style={{ flex: 1, overflowY: "auto", padding: 28 }}>
+                <div className="flex-1 overflow-y-auto p-4 md:p-7">
                     {TAB_CONTENT[activeTab]}
                 </div>
             </div>

@@ -213,26 +213,26 @@ export default function VaultPage() {
         <div style={{ height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
 
             {/* ── Header ── */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 24px", borderBottom: "1.5px solid #E8E4DC", background: "#fff", flexShrink: 0 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <h1 style={{ fontSize: 17, fontWeight: 900, color: "#0D0D0D", fontFamily: "'Plus Jakarta Sans',sans-serif", letterSpacing: "-.02em" }}>File Vault</h1>
-                    <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 999, background: "#F0FDF4", color: "#166534", border: "1px solid #BBF7D0", display: "flex", alignItems: "center", gap: 4 }}>
+            <div className="flex flex-col md:flex-row md:items-center justify-between p-3.5 md:px-6 md:py-3.5 border-b-[1.5px] border-[#E8E4DC] bg-white shrink-0 gap-3">
+                <div className="flex items-center gap-2.5">
+                    <h1 className="text-[16px] md:text-[17px] font-black text-[#0D0D0D] font-['Plus_Jakarta_Sans',sans-serif] tracking-[-.02em]">File Vault</h1>
+                    <span className="text-[10px] md:text-[11px] font-bold px-2 py-[2px] rounded-full bg-[#F0FDF4] text-[#166534] border border-[#BBF7D0] flex items-center gap-1 shrink-0">
                         <Lock size={9} /> Private
                     </span>
-                    {!loading && <span style={{ fontSize: 12, color: "#A8A49C" }}>{files.length} items</span>}
+                    {!loading && <span className="text-[11px] md:text-[12px] text-[#A8A49C] shrink-0">{files.length} items</span>}
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div className="flex flex-wrap items-center gap-2">
                     {/* View toggle */}
-                    <div style={{ display: "flex", borderRadius: 10, overflow: "hidden", border: "1.5px solid #E8E4DC", background: "#F5F0E8" }}>
+                    <div className="flex rounded-[10px] overflow-hidden border-[1.5px] border-[#E8E4DC] bg-[#F5F0E8] shrink-0">
                         {([["grid", Grid], ["list", List]] as const).map(([v, Icon]) => (
-                            <button key={v} onClick={() => setView(v)} style={{ width: 34, height: 34, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", background: view === v ? "#0D0D0D" : "transparent", color: view === v ? "#fff" : "#A8A49C", transition: "all .15s" }}>
+                            <button key={v} onClick={() => setView(v)} className="w-8 h-8 md:w-[34px] md:h-[34px] border-none cursor-pointer flex items-center justify-center transition-all duration-150" style={{ background: view === v ? "#0D0D0D" : "transparent", color: view === v ? "#fff" : "#A8A49C" }}>
                                 <Icon size={15} />
                             </button>
                         ))}
                     </div>
-                    <div style={{ position: "relative" }}>
-                        <Search size={13} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#A8A49C" }} />
-                        <input className="input-field" style={{ paddingLeft: 32, paddingTop: 8, paddingBottom: 8, fontSize: 13, width: 190, margin: 0 }} placeholder="Search files…" value={search} onChange={e => setSearch(e.target.value)} />
+                    <div className="relative shrink-0 w-full sm:w-auto">
+                        <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#A8A49C]" />
+                        <input className="input-field w-full sm:w-[130px] md:w-[190px]" style={{ paddingLeft: 32, paddingTop: 8, paddingBottom: 8, fontSize: 13, margin: 0 }} placeholder="Search files…" value={search} onChange={e => setSearch(e.target.value)} />
                     </div>
                 </div>
             </div>
@@ -241,7 +241,7 @@ export default function VaultPage() {
             <div style={{ flex: 1, overflowY: "auto", padding: 24, display: "flex", flexDirection: "column", gap: 20 }}>
 
                 {/* Stat row */}
-                <div style={{ display: "flex", gap: 14 }}>
+                <div className="flex flex-col lg:flex-row gap-3 lg:gap-[14px]">
                     <div style={{ flex: 1, background: "#fff", borderRadius: 14, border: "1.5px solid #E8E4DC", padding: "14px 18px" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
                             <div style={{ width: 42, height: 42, borderRadius: 12, background: "#F5F0E8", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -304,39 +304,41 @@ export default function VaultPage() {
                             {filtered.map(f => <FileCard key={f.id} file={f} onDelete={deleteFile} onDownload={handleDownload} currentUserId={user?.id} />)}
                         </div>
                     ) : (
-                        <div style={{ background: "#fff", borderRadius: 14, border: "1.5px solid #E8E4DC", overflow: "hidden" }}>
-                            <div style={{ display: "grid", gridTemplateColumns: "5fr 1.5fr 1.5fr 2fr auto", padding: "10px 16px", borderBottom: "1.5px solid #E8E4DC", background: "#F5F0E8" }}>
-                                {["Name", "Size", "Chunks", "Uploaded by", ""].map((h, i) => (
-                                    <span key={i} style={{ fontSize: 11, fontWeight: 700, color: "#6B675E", textTransform: "uppercase", letterSpacing: ".06em" }}>{h}</span>
-                                ))}
-                            </div>
-                            {filtered.map((file, i) => {
-                                const cat = getFileTypeCategory(file.mime_type, file.name);
-                                const Icon = FILE_ICONS[cat] || File;
-                                const s = FILE_STYLES[cat] || FILE_STYLES.doc;
-                                const uploaderName = file.uploader?.full_name || file.uploader?.email || "Unknown";
-                                const chunks = Math.max(1, Math.ceil(file.size_bytes / (1024 * 1024)));
+                        <div className="w-full overflow-x-auto">
+                            <div className="bg-white rounded-[14px] border-[1.5px] border-[#E8E4DC] overflow-hidden min-w-[650px]">
+                                <div style={{ display: "grid", gridTemplateColumns: "5fr 1.5fr 1.5fr 2fr auto", padding: "10px 16px", borderBottom: "1.5px solid #E8E4DC", background: "#F5F0E8" }}>
+                                    {["Name", "Size", "Chunks", "Uploaded by", ""].map((h, i) => (
+                                        <span key={i} style={{ fontSize: 11, fontWeight: 700, color: "#6B675E", textTransform: "uppercase", letterSpacing: ".06em" }}>{h}</span>
+                                    ))}
+                                </div>
+                                {filtered.map((file, i) => {
+                                    const cat = getFileTypeCategory(file.mime_type, file.name);
+                                    const Icon = FILE_ICONS[cat] || File;
+                                    const s = FILE_STYLES[cat] || FILE_STYLES.doc;
+                                    const uploaderName = file.uploader?.full_name || file.uploader?.email || "Unknown";
+                                    const chunks = Math.max(1, Math.ceil(file.size_bytes / (1024 * 1024)));
 
-                                return (
-                                    <div key={file.id} style={{ display: "grid", gridTemplateColumns: "5fr 1.5fr 1.5fr 2fr auto", alignItems: "center", padding: "11px 16px", borderBottom: i < filtered.length - 1 ? "1px solid #F0EBE3" : "none", cursor: "pointer", transition: "background .15s" }}
-                                        onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "#FAFAF7"}
-                                        onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "transparent"}>
-                                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                                            <div style={{ width: 28, height: 28, borderRadius: 8, background: s.bg, border: `1px solid ${s.border}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                                <Icon size={13} style={{ color: s.color }} />
+                                    return (
+                                        <div key={file.id} style={{ display: "grid", gridTemplateColumns: "5fr 1.5fr 1.5fr 2fr auto", alignItems: "center", padding: "11px 16px", borderBottom: i < filtered.length - 1 ? "1px solid #F0EBE3" : "none", cursor: "pointer", transition: "background .15s" }}
+                                            onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "#FAFAF7"}
+                                            onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "transparent"}>
+                                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                                <div style={{ width: 28, height: 28, borderRadius: 8, background: s.bg, border: `1px solid ${s.border}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                                    <Icon size={13} style={{ color: s.color }} />
+                                                </div>
+                                                <span style={{ fontSize: 13, fontWeight: 600, color: "#0D0D0D", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{file.name}</span>
                                             </div>
-                                            <span style={{ fontSize: 13, fontWeight: 600, color: "#0D0D0D", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{file.name}</span>
+                                            <span style={{ fontSize: 12, fontFamily: "monospace", color: "#6B675E" }}>{formatBytes(file.size_bytes)}</span>
+                                            <span style={{ fontSize: 12, fontFamily: "monospace", color: "#6B675E" }}>{chunks}</span>
+                                            <span style={{ fontSize: 12, color: "#6B675E", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{uploaderName}</span>
+                                            <div style={{ display: "flex", gap: 4 }}>
+                                                <button onClick={() => handleDownload(file)} style={{ width: 24, height: 24, borderRadius: 6, border: "1px solid #E8E4DC", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#A8A49C" }}><Download size={11} /></button>
+                                                <button onClick={(e) => { e.stopPropagation(); user && deleteFile(file.id, user.id); }} style={{ width: 24, height: 24, borderRadius: 6, border: "1px solid #E8E4DC", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#EF4444" }}><Trash2 size={11} /></button>
+                                            </div>
                                         </div>
-                                        <span style={{ fontSize: 12, fontFamily: "monospace", color: "#6B675E" }}>{formatBytes(file.size_bytes)}</span>
-                                        <span style={{ fontSize: 12, fontFamily: "monospace", color: "#6B675E" }}>{chunks}</span>
-                                        <span style={{ fontSize: 12, color: "#6B675E", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{uploaderName}</span>
-                                        <div style={{ display: "flex", gap: 4 }}>
-                                            <button onClick={() => handleDownload(file)} style={{ width: 24, height: 24, borderRadius: 6, border: "1px solid #E8E4DC", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#A8A49C" }}><Download size={11} /></button>
-                                            <button onClick={(e) => { e.stopPropagation(); user && deleteFile(file.id, user.id); }} style={{ width: 24, height: 24, borderRadius: 6, border: "1px solid #E8E4DC", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#EF4444" }}><Trash2 size={11} /></button>
-                                        </div>
-                                    </div>
-                                );
-                            })}
+                                    );
+                                })}
+                            </div>
                         </div>
                     )}
                 </div>

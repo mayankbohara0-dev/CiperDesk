@@ -53,13 +53,13 @@ export default function MembersPage() {
         <div style={{ height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
 
             {/* Header */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 24px", borderBottom: "1.5px solid #E8E4DC", background: "#fff", flexShrink: 0 }}>
+            <div className="flex flex-col md:flex-row md:items-center justify-between p-3.5 md:px-6 md:py-3.5 border-b-[1.5px] border-[#E8E4DC] bg-white shrink-0 gap-3">
                 <div>
-                    <h1 style={{ fontSize: 17, fontWeight: 900, color: "#0D0D0D", fontFamily: "'Plus Jakarta Sans',sans-serif", letterSpacing: "-.02em" }}>Team Members</h1>
-                    <p style={{ fontSize: 12, color: "#A8A49C", marginTop: 2 }}>Manage team access · All crypto keys are verified client-side</p>
+                    <h1 className="text-[16px] md:text-[17px] font-black text-[#0D0D0D] font-['Plus_Jakarta_Sans',sans-serif] tracking-[-.02em]">Team Members</h1>
+                    <p className="hidden md:block text-[12px] text-[#A8A49C] mt-[2px]">Manage team access · All crypto keys are verified client-side</p>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    {!loading && <span style={{ fontSize: 13, color: "#A8A49C", marginRight: 10 }}>{members.length} members</span>}
+                <div className="flex items-center justify-between md:justify-end gap-2 shrink-0">
+                    {!loading && <span className="text-[12px] md:text-[13px] text-[#A8A49C] md:mr-2.5">{members.length} members</span>}
                     <button className="btn-primary" onClick={() => setInviteOpen(true)}>
                         <UserPlus size={15} /> Invite Member
                     </button>
@@ -85,65 +85,67 @@ export default function MembersPage() {
                 </div>
 
                 {/* Table */}
-                <div style={{ background: "#fff", border: "1.5px solid #E8E4DC", borderRadius: 14, overflow: "hidden" }}>
-                    {/* Header */}
-                    <div style={{ display: "grid", gridTemplateColumns: "1.5fr 150px 120px 110px 40px", padding: "10px 20px", borderBottom: "1.5px solid #E8E4DC", background: "#F5F0E8" }}>
-                        {["Member", "Role", "Joined", "Key Ver.", ""].map(h => (
-                            <span key={h} style={{ fontSize: 11, fontWeight: 700, color: "#6B675E", textTransform: "uppercase", letterSpacing: ".06em" }}>{h}</span>
-                        ))}
-                    </div>
-
-                    {loading ? (
-                        <div style={{ padding: 40, display: "flex", justifyContent: "center" }}>
-                            <div style={{ width: 28, height: 28, borderRadius: "50%", border: "2px solid #E8E4DC", borderTopColor: "#0D0D0D", animation: "spin 1s linear infinite" }} />
+                <div className="w-full xl:max-w-[1000px] overflow-x-auto">
+                    <div className="bg-white rounded-[14px] border-[1.5px] border-[#E8E4DC] overflow-hidden min-w-[700px]">
+                        {/* Header */}
+                        <div style={{ display: "grid", gridTemplateColumns: "1.5fr 150px 120px 110px 40px", padding: "10px 20px", borderBottom: "1.5px solid #E8E4DC", background: "#F5F0E8" }}>
+                            {["Member", "Role", "Joined", "Key Ver.", ""].map(h => (
+                                <span key={h} style={{ fontSize: 11, fontWeight: 700, color: "#6B675E", textTransform: "uppercase", letterSpacing: ".06em" }}>{h}</span>
+                            ))}
                         </div>
-                    ) : (members.map((m, i) => {
-                        const bg = getAvatarBg(m.id);
-                        const initials = m.full_name ? m.full_name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2) : m.email.slice(0, 2).toUpperCase();
-                        const isMe = user?.id === m.id;
-                        const date = new Date(m.created_at).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" });
 
-                        return (
-                            <div key={m.id}
-                                style={{ display: "grid", gridTemplateColumns: "1.5fr 150px 120px 110px 40px", alignItems: "center", padding: "14px 20px", borderBottom: i < members.length - 1 ? "1px solid #F0EBE3" : "none", transition: "background .15s" }}
-                                onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "#FAFAF7"}
-                                onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "transparent"}>
-
-                                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                                    <div style={{ position: "relative", flexShrink: 0 }}>
-                                        <div style={{ width: 38, height: 38, borderRadius: 11, background: bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, color: "#fff" }}>{initials}</div>
-                                        {isMe && <div style={{ position: "absolute", bottom: -2, right: -2, width: 10, height: 10, borderRadius: "50%", background: "#22C55E", border: "2px solid #fff" }} />}
-                                    </div>
-                                    <div style={{ minWidth: 0 }}>
-                                        <div style={{ fontSize: 13, fontWeight: 700, color: "#0D0D0D", display: "flex", alignItems: "center", gap: 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                            {m.full_name || "Unknown"}
-                                            {isMe && <span style={{ fontSize: 9, fontWeight: 800, padding: "2px 5px", borderRadius: 4, background: "#AAEF45", color: "#0D0D0D" }}>YOU</span>}
-                                        </div>
-                                        <div style={{ fontSize: 12, color: "#A8A49C", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.email}</div>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <select style={{ fontSize: 12, background: "transparent", border: "none", outline: "none", cursor: "pointer", color: "#0D0D0D", fontWeight: 700 }}
-                                        value={m.role} onChange={e => { if (user) updateRole(m.id, e.target.value, user.id) }} disabled={isMe}>
-                                        <option value="member">Member</option>
-                                        <option value="admin">Admin</option>
-                                        <option value="owner">Owner</option>
-                                    </select>
-                                </div>
-
-                                <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "#A8A49C" }}>
-                                    <Clock size={11} />{date}
-                                </div>
-
-                                <div>
-                                    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 700, padding: "3px 9px", borderRadius: 999, background: "#F0FDF4", color: "#166534", border: "1px solid #BBF7D0" }}><ShieldCheck size={10} />Verified</span>
-                                </div>
-
-                                <div>{!isMe && m.role !== "owner" && <button style={{ border: "none", background: "none", cursor: "pointer", color: "#C8C4BC", padding: 4 }}><MoreHorizontal size={16} /></button>}</div>
+                        {loading ? (
+                            <div style={{ padding: 40, display: "flex", justifyContent: "center" }}>
+                                <div style={{ width: 28, height: 28, borderRadius: "50%", border: "2px solid #E8E4DC", borderTopColor: "#0D0D0D", animation: "spin 1s linear infinite" }} />
                             </div>
-                        );
-                    }))}
+                        ) : (members.map((m, i) => {
+                            const bg = getAvatarBg(m.id);
+                            const initials = m.full_name ? m.full_name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2) : m.email.slice(0, 2).toUpperCase();
+                            const isMe = user?.id === m.id;
+                            const date = new Date(m.created_at).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" });
+
+                            return (
+                                <div key={m.id}
+                                    style={{ display: "grid", gridTemplateColumns: "1.5fr 150px 120px 110px 40px", alignItems: "center", padding: "14px 20px", borderBottom: i < members.length - 1 ? "1px solid #F0EBE3" : "none", transition: "background .15s" }}
+                                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "#FAFAF7"}
+                                    onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "transparent"}>
+
+                                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                                        <div style={{ position: "relative", flexShrink: 0 }}>
+                                            <div style={{ width: 38, height: 38, borderRadius: 11, background: bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, color: "#fff" }}>{initials}</div>
+                                            {isMe && <div style={{ position: "absolute", bottom: -2, right: -2, width: 10, height: 10, borderRadius: "50%", background: "#22C55E", border: "2px solid #fff" }} />}
+                                        </div>
+                                        <div style={{ minWidth: 0 }}>
+                                            <div style={{ fontSize: 13, fontWeight: 700, color: "#0D0D0D", display: "flex", alignItems: "center", gap: 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                                {m.full_name || "Unknown"}
+                                                {isMe && <span style={{ fontSize: 9, fontWeight: 800, padding: "2px 5px", borderRadius: 4, background: "#AAEF45", color: "#0D0D0D" }}>YOU</span>}
+                                            </div>
+                                            <div style={{ fontSize: 12, color: "#A8A49C", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.email}</div>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <select style={{ fontSize: 12, background: "transparent", border: "none", outline: "none", cursor: "pointer", color: "#0D0D0D", fontWeight: 700 }}
+                                            value={m.role} onChange={e => { if (user) updateRole(m.id, e.target.value, user.id) }} disabled={isMe}>
+                                            <option value="member">Member</option>
+                                            <option value="admin">Admin</option>
+                                            <option value="owner">Owner</option>
+                                        </select>
+                                    </div>
+
+                                    <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "#A8A49C" }}>
+                                        <Clock size={11} />{date}
+                                    </div>
+
+                                    <div>
+                                        <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 700, padding: "3px 9px", borderRadius: 999, background: "#F0FDF4", color: "#166534", border: "1px solid #BBF7D0" }}><ShieldCheck size={10} />Verified</span>
+                                    </div>
+
+                                    <div>{!isMe && m.role !== "owner" && <button style={{ border: "none", background: "none", cursor: "pointer", color: "#C8C4BC", padding: 4 }}><MoreHorizontal size={16} /></button>}</div>
+                                </div>
+                            );
+                        }))}
+                    </div>
                 </div>
 
                 {/* Key verification info */}

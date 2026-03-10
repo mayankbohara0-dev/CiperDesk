@@ -223,34 +223,34 @@ export default function ChatPage() {
         <div style={{ height: "100%", display: "flex", flexDirection: "column", overflow: "hidden", background: "#fff" }}>
 
             {/* Channel header */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 20px", borderBottom: "1.5px solid #E8E4DC", flexShrink: 0 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <div style={{ width: 32, height: 32, borderRadius: 10, background: dmMember ? "#0D0D0D" : "#F5F0E8", display: "flex", alignItems: "center", justifyContent: "center", color: dmMember ? "#fff" : "#6B675E", fontSize: 13, fontWeight: 800 }}>
+            <div className="flex items-center justify-between px-3 md:px-5 py-3 border-b-[1.5px] border-[#E8E4DC] shrink-0 gap-2 relative">
+                <div className="flex items-center gap-2 md:gap-3 overflow-hidden">
+                    <div className="w-8 h-8 md:w-8 md:h-8 shrink-0 rounded-[10px] flex items-center justify-center text-[13px] font-extrabold" style={{ background: dmMember ? "#0D0D0D" : "#F5F0E8", color: dmMember ? "#fff" : "#6B675E" }}>
                         {dmMember ? initials : <Hash size={15} style={{ color: "#6B675E" }} />}
                     </div>
-                    <div>
-                        <h1 style={{ fontSize: 15, fontWeight: 800, color: "#0D0D0D", fontFamily: "'Plus Jakarta Sans',sans-serif", letterSpacing: "-.01em" }}>
+                    <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
+                        <h1 className="text-[14px] md:text-[15px] font-extrabold text-[#0D0D0D] font-['Plus_Jakarta_Sans',sans-serif] tracking-[-.01em] truncate block">
                             {headerTitle}
                         </h1>
                         {headerDesc && (
-                            <p style={{ fontSize: 11, color: "#A8A49C" }}>{headerDesc}</p>
+                            <p className="hidden md:block text-[11px] text-[#A8A49C] truncate">{headerDesc}</p>
                         )}
                     </div>
-                    <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "#F0FDF4", color: "#166534", border: "1px solid #BBF7D0", display: "flex", alignItems: "center", gap: 4 }}>
+                    <span className="hidden sm:flex text-[11px] font-bold px-2 py-[2px] rounded-full bg-[#F0FDF4] text-[#166534] border border-[#BBF7D0] items-center gap-1 shrink-0">
                         <Lock size={9} /> E2EE
                     </span>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div className="flex items-center gap-2 shrink-0">
                     <button onClick={() => setShowSearch(!showSearch)}
-                        style={{ width: 32, height: 32, borderRadius: 9, border: "1.5px solid #E8E4DC", background: showSearch ? "#0D0D0D" : "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: showSearch ? "#AAEF45" : "#6B675E" }}>
+                        className="w-8 h-8 shrink-0 rounded-lg border-[1.5px] border-[#E8E4DC] flex items-center justify-center cursor-pointer" style={{ background: showSearch ? "#0D0D0D" : "#fff", color: showSearch ? "#AAEF45" : "#6B675E" }}>
                         <Search size={14} />
                     </button>
-                    <button style={{ width: 32, height: 32, borderRadius: 9, border: "1.5px solid #E8E4DC", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#6B675E" }}>
+                    <button className="hidden sm:flex w-8 h-8 shrink-0 rounded-lg border-[1.5px] border-[#E8E4DC] bg-white items-center justify-center cursor-pointer text-[#6B675E]">
                         <Pin size={14} />
                     </button>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 10px", borderRadius: 9, background: "#F5F0E8", border: "1.5px solid #E8E4DC" }}>
+                    <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#F5F0E8] border-[1.5px] border-[#E8E4DC] shrink-0">
                         <Shield size={12} style={{ color: "#0D0D0D" }} />
-                        <span style={{ fontSize: 11, fontWeight: 700, color: "#0D0D0D" }}>Messages: {messages.length}</span>
+                        <span className="text-[11px] font-bold text-[#0D0D0D]">Messages: {messages.length}</span>
                     </div>
                 </div>
             </div>
